@@ -24,7 +24,20 @@ export default class Particle {
   draw() {
     this.ctx.beginPath()
     this.ctx.arc(this.x, this.y, this.config.particleSize, 0, Math.PI * 2)
-    this.ctx.fillStyle = this.color
+
+    let color = this.color;
+    // if (this.velocityX <= -0.09) {
+    //   color = "#2a58ff"
+    // } else if (this.velocityX >= -0.1) {
+    //   color = "#fa5d18"
+    // } else if (this.velocityX >= 0) {
+    //   color = "#ffffff"
+    // } else if (this.velocityX >= 0.01) {
+    //   color = "#4f75fd"
+    // } else if (this.velocityX > 0.1) {
+    //   color = "#2a58ff"
+    // }
+    this.ctx.fillStyle = color
     this.ctx.fill()
     this.ctx.closePath()
   }
@@ -70,6 +83,8 @@ export default class Particle {
       this.y = nextY
     }
 
+    // console.log(this.velocityX, this. velocityY)
+
     // Apply friction to gradually slow down the object
     this.velocityX *= this.config.particleFriction
     this.velocityY *= this.config.particleFriction
@@ -111,13 +126,16 @@ export default class Particle {
 
   select() {
     this.selected = true
-    this.color = '#DD5900'
+    this.color = '#f5ff08'
     this.velocityX = 0
     this.velocityY = 0
   }
 
   deselect() {
-    this.resetColor()
+    
+    setTimeout(() => {
+      this.resetColor()
+    }, 1000);
     this.selected = false
     this.velocityX = 0
     this.velocityY = 0
@@ -137,6 +155,11 @@ export default class Particle {
 
     if (!this.selected) {
       this.applyForce(this.config.collitionForce, direction)
+    } else {
+      target.color = "#ffffff"
+      setTimeout(() => {
+        target.color = target.baseColor
+      }, 1000);
     }
   }
 
