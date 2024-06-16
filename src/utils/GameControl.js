@@ -43,10 +43,6 @@ export class GameControl {
     this.game.start()
 
     const self = this;
-    window.addEventListener('resize', () => {
-      self.setCanvasSize();
-    })
-
     document.addEventListener('mousedown', (event) => {
       if (event.target === this.canvas) {
         self.handleClick(event)
@@ -85,6 +81,13 @@ export class GameControl {
 
     this.config.canvasMaxWidth = width;
     this.config.canvasMaxHeight = height;
+
+    if (this.config.canvasWidth > width) {
+      this.config.canvasWidth = width;
+    }
+    if (this.config.canvasHeight > height) {
+      this.config.canvasHeight = height;
+    }
 
     this.saveConfig(this.config);
   }

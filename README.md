@@ -14,6 +14,18 @@ Save parameter sets as profiles to rapidly compare between diferent configuratio
 
 This template should help get you started developing with Vue 3 in Vite.
 
+## TODO
+- Alpha particles
+    - Stronger attraction
+    - Competes with othe alphas
+- Damage by collition?
+    - The particles die
+    - Cometition?
+- Diferent types of particles
+    - Diferent types of interactions
+- Player
+    - Control with keboard
+
 ## Recommended IDE Setup
 
 [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).

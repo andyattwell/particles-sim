@@ -43,6 +43,13 @@ export default {
       gameControls.start();
 
     }, 500)
+
+
+    window.addEventListener('resize', () => {
+      gameControls.setCanvasSize();
+      self.config = gameControls.config
+    })
+
   },
   watch: {
     config: {
@@ -107,6 +114,7 @@ export default {
       if (next >= 300 && next <= 800) {
         this.$emit('resize', next)
         gameControls.setCanvasSize();
+        this.config = gameControls.config
         this.panelWidth = next;
         this.startX = event.clientX
       }
@@ -363,7 +371,7 @@ export default {
   bottom: 0;
   height: 100%;
   background-color: #000;
-  border-left: 2px solid #ffe600;
+  /* border-left: 2px solid #ffe600; */
   padding-top: 10px;
   overflow-y: scroll;
 }
@@ -375,8 +383,8 @@ export default {
   left: 0;
   top: 0;
   height: 100%;
-  width: 5px;
-  background-color: #FFFFFF;
+  width: 2px;
+  background-color: #ffe600;;
   cursor: e-resize;
 }
 </style>

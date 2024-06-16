@@ -56,7 +56,7 @@ body {
 
 canvas {
     position: relative;
-    border: 3px solid #ffffff;
+    /* border: 3px solid #ffffff; */
 }
 
 </style>
