@@ -26,41 +26,24 @@ export class GameControl {
     endY: 0,
     isMouseDown: false
   }
+  selectedTool = false
 
-  constructor(config) {
-    this.config = INITIAL_CONFIG
+  constructor(canvasId, config) {
+    this.canvasId = canvasId
+    this.canvas = document.getElementById(canvasId)
     if (config) {
       this.config = config
+    } else {
+      this.config = INITIAL_CONFIG
     }
     this.loadSavedConfig()
   }
 
   start() {
-    this.canvas = document.getElementById('game-canvas');
+    this.canvas = document.getElementById(this.canvasId)
     this.setCanvasSize();
-    
     this.game = new Game(this.canvas, this.config)
     this.game.start()
-
-    const self = this;
-    document.addEventListener('mousedown', (event) => {
-      if (event.target === this.canvas) {
-        self.handleClick(event)
-        document.addEventListener('mousemove', mouseMove)
-      }
-    })
-
-    const mouseMove = (event) => {
-      self.handleMouseMove(event)
-    }
-
-    document.addEventListener('mouseup', (event) => {
-      if (event.target === this.canvas) {
-        self.handleMouseUp(event)
-      }
-      document.removeEventListener('mousemove', mouseMove)
-    })
-
   }
 
   setCanvasSize(containerWidth) {
@@ -110,15 +93,22 @@ export class GameControl {
     if (!inBounds) {
       return
     }
+
     this.mouse.startX = inBounds.x
     this.mouse.startY = inBounds.y
     this.mouse.isMouseDown = true
+
+    if (this.selectedTool) {
+      this.handleTool(this.selectedTool, inBounds)
+      return;
+    }
 
     const particle = this.game.particles.find((p) => p.isClicked(inBounds))
     if (particle) {
       this.selectedParticle = particle;
       this.selectedParticle.select();
     }
+
   }
 
   handleMouseUp(event) {
@@ -144,6 +134,10 @@ export class GameControl {
       return
     }
 
+    if (this.selectedTool) {
+      return;
+    }
+
     if (this.selectedParticle) {
       this.selectedParticle.move(inBounds.x, inBounds.y)
     }
@@ -152,6 +146,10 @@ export class GameControl {
       this.mouse.lastX = this.mouse.startX;
       this.mouse.lastY = this.mouse.startY;
     }
+  }
+
+  handleTool(tool, inBounds) {
+    this.game.addObject(tool, inBounds);
   }
 
   determineDirection(x1, y1, x2, y2) {

@@ -12,6 +12,12 @@ export default class Box extends Body {
 
     constructor(canvas, props) {
         super(props)
+        if (!props.height) {
+            this.height = 20
+        }
+        if (!props.width) {
+            this.width = 20
+        }
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')
     }

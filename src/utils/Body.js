@@ -34,7 +34,7 @@ export default class Body {
     this.ctx.closePath();
   }
 
-  update() {
+  update(index, objects) {
     if (this.selected) {
       return
     }
@@ -50,27 +50,47 @@ export default class Body {
       halfSizeX = this.width / 2
       halfSizeY = this.height / 2
     }
-    const nextX = this.x + this.velocityX
-    const nextY = this.y + this.velocityY
-
+    let nextX = this.x + this.velocityX
+    let nextY = this.y + this.velocityY
     // Check X bounds
     const clipX = this.canvas.width / 2 - this.containerWidth / 2
     const clipY = this.canvas.height / 2 - this.containerHeight / 2
     const boundWidth = clipX + this.containerWidth - 5
     const boundHeight = clipY + this.containerHeight - 5
-
     const boundingBox = this.getBoundingBox();
+
+    objects.forEach((particle2, index2) => {
+      if (index !== index2) {
+        // Apply attraction
+        this.applyAttraction(particle2, this.attractionForce)
+        // Check collision
+        const collition = this.checkCollition(particle2);
+        if (collition.isColliding === true) {
+          // console.log('collition')
+          this.collideWith(particle2, collition.direction)
+        }
+      }
+    })
 
     if (boundingBox.left <= clipX || boundingBox.right >= boundWidth) {
       this.velocityX *= -1
       // Adjust position to be within bounds after reversing velocity
       if (boundingBox.left <= clipX) {
-        this.x = clipX + boundingBox.width
+        nextX = clipX + boundingBox.width
+
+        if (this.radius > 0) {
+          nextX = clipX + this.radius
+        } else {
+          nextX = clipX + 3
+        }
+
       } else if (boundingBox.right >= boundWidth) {
-        this.x = boundWidth - boundingBox.width
+        if (this.radius > 0) {
+          nextX = boundWidth - this.radius
+        } else {
+          nextX = boundWidth - boundingBox.width
+        }
       }
-    } else {
-      this.x = nextX
     }
 
     // Check Y bounds
@@ -78,14 +98,25 @@ export default class Body {
       this.velocityY *= -1
       // Adjust position to be within bounds after reversing velocity
       if (boundingBox.top < clipY) {
-        this.y = clipY + boundingBox.height
+        
+        if (this.radius > 0) {
+          nextY = clipY + this.radius
+        } else {
+          nextY = clipY + 3
+        }
+
       } else if (boundingBox.bottom > boundHeight) {
         // this.y = boundHeight - halfSizeY * 2
-        this.y = boundHeight - boundingBox.height / 8
+        if (this.radius > 0) {
+          nextY = boundHeight - this.radius / 2
+        } else {
+          nextY = boundHeight - boundingBox.height
+        }
       }
-    } else {
-      this.y = nextY
     }
+
+    this.x = nextX
+    this.y = nextY
 
     // Apply friction to gradually slow down the object
     this.velocityX *= this.friction
@@ -96,11 +127,12 @@ export default class Body {
     if (Math.abs(this.velocityY) < 0.01) this.velocityY = 0
   }
 
-  applyForce(forceMagnitude, direction) {
+  applyForce(forceMagnitude, direction, type) {
     // Apply force based on the direction vector
-    if (!direction) {
+    if (!direction || (direction.x === 0 && direction.y === 0)) {
       return;
     }
+
     this.velocityX += (forceMagnitude * direction.x) / this.mass
     this.velocityY += (forceMagnitude * direction.y) / this.mass
   }
@@ -116,7 +148,7 @@ export default class Body {
       const forceMagnitude = obj2.attractionForce / distance
       const forceX = (dx / distance) * forceMagnitude
       const forceY = (dy / distance) * forceMagnitude
-      this.applyForce(0.1, { x: forceX, y: forceY })
+      this.applyForce(0.1, { x: forceX, y: forceY }, 'attraction')
     }
   }
 
@@ -125,7 +157,7 @@ export default class Body {
     const dy = clipY + this.containerHeight - this.y
     if (dy > 0) {
       const forceY = dy * this.gravityForce
-      this.applyForce(1, { x: 0, y: forceY })
+      this.applyForce(1, { x: 0, y: forceY }, 'gravity')
     }
   }
 
@@ -336,10 +368,9 @@ export default class Body {
       if (this.selected) {
         force *= 5
       }
-
-      // target.applyForce(force, direction)
+      // target.applyForce(force, direction, 'collition¿)
       if (!this.selected) {
-        this.applyForce(this.collitionForce, direction)
+        this.applyForce(this.collitionForce, direction, 'collition')
       } else {
         target.color = target.collitionColor
         setTimeout(() => {

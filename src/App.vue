@@ -1,4 +1,5 @@
 <script lang="ts">
+import { GameControl, INITIAL_CONFIG } from './utils/GameControl.js'
 import ControlPanel from './components/ControlPanel.vue'
 
 export default {
@@ -7,16 +8,68 @@ export default {
   },
   data() {
     return {
-      containerSize: 500
+      containerSize: 500,
+      gameControls: new GameControl('game-canvas'),
+      selectedTool: ''
     }
   },
   mounted() {
     document.querySelector('html')?.setAttribute('data-bs-theme', 'dark')
     this.resizeContainer(600)
+    this.addListeners()
   },
   methods: {
     resizeContainer(diff:number) {
       this.containerSize = window.innerWidth - diff
+    },
+    addListeners() {
+      const self = this
+
+      window.addEventListener('resize', () => {
+        self.gameControls.setCanvasSize();
+        // self.config = this.gameControls.config
+      })
+
+      document.addEventListener('mousedown', (event) => {
+        if (event.target !== self.gameControls.canvas) {
+          this.selectedTool = ''
+          this.gameControls.selectedTool = ''
+          return
+        }
+        event.preventDefault()
+        if (event.button === 0) {
+          self.gameControls.handleClick(event)
+          document.addEventListener('mousemove', mouseMove)
+        }
+        return false;
+      })
+
+      const mouseMove = (event:MouseEvent) => {
+        self.gameControls.handleMouseMove(event)
+      }
+
+      document.addEventListener('mouseup', (event) => {
+        if (event.target === self.gameControls.canvas) {
+          self.gameControls.handleMouseUp(event)
+        }
+        event.preventDefault()
+        document.removeEventListener('mousemove', mouseMove)
+        return false;
+      })
+
+      document.addEventListener('contextmenu', function(event) {
+        
+        if (event.target !== self.gameControls.canvas) {
+          return
+        }
+        event.preventDefault();
+        // Your custom logic here
+        self.changeTool('')
+      });
+    },
+    changeTool(tool:string) {
+      this.selectedTool = tool;
+      this.gameControls.selectedTool = tool;
     }
   }
 }
@@ -27,7 +80,11 @@ export default {
     <div ref="container" id="canvas-container" :style="{ width: containerSize + 'px'}">
       <canvas id="game-canvas"></canvas>
     </div>
-    <ControlPanel @resize="resizeContainer" :containerSize="containerSize"/>
+    <ControlPanel 
+      @resize="resizeContainer" 
+      :gameControls="gameControls" 
+      :selectedTool="selectedTool"
+      @changeTool="changeTool"/>
   </div>
 </template>
 <style scoped>

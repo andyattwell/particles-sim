@@ -15,8 +15,8 @@ export default class Game {
   }
 
   start() {
-    this.createParticles(this.config.particleAmmount)
     this.addSomeBoxes()
+    this.createParticles(this.config.particleAmmount)
     this.update()
   }
 
@@ -39,21 +39,7 @@ export default class Game {
 
     this.particles.forEach((particle, index1) => {
       particle.draw()
-      particle.update()
-
-      self.particles.forEach((particle2, index2) => {
-        if (index1 !== index2) {
-          // Apply attraction
-          // particle.applyAttraction(particle2, this.config.attractionForce)
-          // Check collision
-          const collition = particle.checkCollition(particle2);
-          if (collition.isColliding === true) {
-            // console.log('collition')
-            particle.collideWith(particle2, collition.direction)
-          }
-          
-        }
-      })
+      particle.update(index1, self.particles)
     })
 
     this.boxes.forEach(box => {
@@ -95,9 +81,25 @@ export default class Game {
     return Math.floor(Math.random() * (max + 1))
   }
 
+  addObject (type, position) {
+    const config = {
+      ...this.config,
+      position
+    }
+    let obj;
+    if (type === 'particle') {
+      obj = new Particle(this.canvas, config);
+    } else if (type === 'box') {
+      obj = new Box(this.canvas, config);
+    }
+
+    if (obj) {
+      this.particles.push(obj)
+    }
+  }
+
   createParticles(particleAmmount) {
     const clipPos = this.getMaskPosition();
-    const particles = []
     for (let index = 0; index < particleAmmount; index++) {
       const position = {
         x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
@@ -107,23 +109,27 @@ export default class Game {
         ...this.config,
         position
       }
-      particles.push(
+      this.particles.push(
         new Particle(this.canvas, config)
       )
     }
-    this.particles = particles;
   }
 
   updateParticles() {
+    
     if (this.config.particleAmmount > this.particles.length) {
       this.createParticles(this.config.particleAmmount)
     } else if (this.config.particleAmmount < this.particles.length) {
       const diff = this.particles.length - this.config.particleAmmount
-      this.particles.splice(0, diff)
+      this.particles.splice(this.particles.length - diff, diff)
     }
+
     this.particles.forEach((particle) => {
       if (particle.type === 'particle') {
         particle.setConfig(this.config)
+      } else {
+        particle.containerWidth = this.config.containerWidth
+        particle.containerHeight = this.config.containerHeight
       }
     })
   }

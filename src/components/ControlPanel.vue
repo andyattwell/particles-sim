@@ -1,6 +1,6 @@
 <script lang="ts">
-import { GameControl, INITIAL_CONFIG } from '../utils/GameControl.js'
-
+import { INITIAL_CONFIG } from '../utils/GameControl.js'
+import ObjectsMenu from './ObjectsMenu.vue'
 type Config = {
   profileName: string
   radius: number
@@ -16,20 +16,21 @@ type Config = {
   canvasMaxHeight?: number
 }
 
-const gameControls = new GameControl();
-
 export default {
-  // props: ['containerSize'],
+  props: ['gameControls', 'selectedTool'],
+  components: {
+    ObjectsMenu
+  },
   data() {
     const config: Config = INITIAL_CONFIG
     return {
       config: config,
       profiles: [] as Config[],
       selectedProfile: 'Default',
-      gameControls: null,
       panelWidth: 600,
       isDragging: false,
       startX: 0,
+      currentTab: 'profile'
     }
   },
   mounted() {
@@ -37,31 +38,30 @@ export default {
     self.setPanelSize();
     
     setTimeout(() => {
-      self.selectedProfile = gameControls.selectedProfile
-      self.profiles = gameControls.profiles
-      self.config = gameControls.config
-      gameControls.start();
-
+      self.selectedProfile = this.gameControls.selectedProfile
+      self.profiles = this.gameControls.profiles
+      self.config = this.gameControls.config
+      self.gameControls.start();
     }, 500)
-
-
-    window.addEventListener('resize', () => {
-      gameControls.setCanvasSize();
-      self.config = gameControls.config
-    })
 
   },
   watch: {
     config: {
       handler(newVal) {
         if (!newVal.selectedProfile) {
-          gameControls.saveConfig({ ...this.config, ...newVal })
+          this.gameControls.saveConfig({ ...this.config, ...newVal })
         }
       },
       deep: true
     }
   },
   methods: {
+    changeTab(tab:string) {
+      this.currentTab = tab
+    },
+    selectTool(tool:string) {
+      this.$emit('changeTool', tool)
+    },
     setPanelSize() {
       // this.panelWidth = window.innerWidth - this.containerSize;
       const lsWidth = localStorage.getItem('partsim-panelWidth');
@@ -74,10 +74,10 @@ export default {
       if (this.selectedProfile === 'New') {
         return this.addProfile()
       }
-      gameControls.changeProfile(this.selectedProfile)
+      this.gameControls.changeProfile(this.selectedProfile)
       // this.selectedProfile = this.selectedProfile
-      this.profiles = gameControls.profiles;
-      this.config = gameControls.config;
+      this.profiles = this.gameControls.profiles;
+      this.config = this.gameControls.config;
     },
     addProfile() {
       const regex = /^New profile\s*\d*$/i;
@@ -90,16 +90,16 @@ export default {
         profileName: 'New profile' + sameCount
       }
       // this.profiles.push(newConfig)
-      gameControls.saveConfig(newConfig)
-      this.config = gameControls.config
-      this.selectedProfile = gameControls.selectedProfile
-      this.profiles = gameControls.profiles
+      this.gameControls.saveConfig(newConfig)
+      this.config = this.gameControls.config
+      this.selectedProfile = this.gameControls.selectedProfile
+      this.profiles = this.gameControls.profiles
     },
     deleteConfig() {
-      gameControls.deleteConfig(this.selectedProfile)
-      this.profiles = gameControls.profiles
-      this.config = gameControls.config
-      this.selectedProfile = gameControls.selectedProfile
+      this.gameControls.deleteConfig(this.selectedProfile)
+      this.profiles = this.gameControls.profiles
+      this.config = this.gameControls.config
+      this.selectedProfile = this.gameControls.selectedProfile
     },
     startDrag (event:any) {
       this.isDragging = true;
@@ -113,8 +113,8 @@ export default {
       const next = this.panelWidth + this.startX - event.clientX;
       if (next >= 300 && next <= 800) {
         this.$emit('resize', next)
-        gameControls.setCanvasSize();
-        this.config = gameControls.config
+        this.gameControls.setCanvasSize();
+        this.config = this.gameControls.config
         this.panelWidth = next;
         this.startX = event.clientX
       }
@@ -133,10 +133,27 @@ export default {
   <div id="particle-controls" :style="{'width': panelWidth + 'px'}">
     <div class="particle-controls-slider" @mousedown="startDrag"></div>
     <div class="">
-      <div class="p-2">
-        <div class="card p-2">
+      <div class="p-2 pt-0">
+        <div class="card p-2 pt-0">
           <h1 class="card-title">Settings</h1>
-          <div class="card-body">
+          
+          <ul class="nav nav-tabs">
+            <li class="nav-item">
+              <a class="nav-link" 
+                :class="{'active': currentTab === 'profile' }" 
+                href="#"
+                @click.prevent="changeTab('profile')">Profile</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" 
+                href="#" 
+                :class="{'active': currentTab === 'objects' }"
+                @click.prevent="changeTab('objects')">Objects</a>
+            </li>
+          </ul>
+
+          <!-- Particles profile config -->
+          <div class="card-body" v-if="currentTab === 'profile'">
             <form>
               <div class="row mb-3">
                 <label for="selectedProfile" class="col-4 text-end">Profile</label>
@@ -355,6 +372,11 @@ export default {
               </div>
             </form>
           </div>
+
+          <div class="card-body" v-if="currentTab === 'objects'">
+            <ObjectsMenu @select="selectTool" :selectedTool="selectedTool"/>
+          </div>
+
         </div>
       </div>
     </div>
