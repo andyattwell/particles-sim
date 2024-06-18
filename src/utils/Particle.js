@@ -12,21 +12,7 @@ export default class Particle extends Body {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
   }
-
-  setConfig(config) {
-    console.log('confg', config)
-    this.radius = config.radius
-    this.width = config.width
-    this.height = config.height
-    this.containerWidth = config.containerWidth
-    this.containerHeight = config.containerHeight
-    this.friction = config.particleFriction
-    this.mass = config.particleMass
-    this.collitionForce = config.collitionForce
-    this.attractionForce = config.attractionForce
-    this.gravityForce = config.gravityForce
-  }
-
+  
   draw() {
     this.ctx.beginPath()
     this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)

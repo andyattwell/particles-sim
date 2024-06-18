@@ -131,10 +131,10 @@ export class GameControl {
     const direction = this.determineDirection(this.mouse.startX, this.mouse.startY, this.mouse.endX, this.mouse.endY);
 
     this.selectedParticle?.deselect();
-    this.selectedParticle?.applyForce(10, {
-      x: direction.x * 2,
-      y: direction.y * 2
-    });
+    // this.selectedParticle?.applyForce(10, {
+    //   x: direction.x * 2,
+    //   y: direction.y * 2
+    // });
     this.selectedParticle = null
   }
 
@@ -274,8 +274,7 @@ export class GameControl {
       this.game?.reset(this.config)
     } else if (this.game) {
       this.game.config = this.config
-      this.game.createParticles()
-      this.game.addSomeBoxes()
+      this.game.updateParticles()
     }
   }
 

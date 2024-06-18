@@ -7,9 +7,8 @@ export default class Box extends Body {
     attractionForce = 100
     collitionForce = 30
     gravityForce = 0
-    color = "#FFFFFF"
+    // color = "#FFFFFF"
     type = 'box'
-
 
     constructor(canvas, props) {
         super(props)

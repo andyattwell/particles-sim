@@ -15,7 +15,7 @@ export default class Game {
   }
 
   start() {
-    this.createParticles()
+    this.createParticles(this.config.particleAmmount)
     this.addSomeBoxes()
     this.update()
   }
@@ -43,10 +43,15 @@ export default class Game {
 
       self.particles.forEach((particle2, index2) => {
         if (index1 !== index2) {
-          // Check collision
-          particle.checkCollition(particle2)
           // Apply attraction
-          particle.applyAttraction(particle2, this.config.attractionForce)
+          // particle.applyAttraction(particle2, this.config.attractionForce)
+          // Check collision
+          const collition = particle.checkCollition(particle2);
+          if (collition.isColliding === true) {
+            // console.log('collition')
+            particle.collideWith(particle2, collition.direction)
+          }
+          
         }
       })
     })
@@ -74,6 +79,7 @@ export default class Game {
     this.ctx.lineWidth = 2; // Border width
     this.ctx.strokeStyle = 'white'; // Border color
     this.ctx.stroke();
+    this.ctx.closePath();
   }
 
   getMaskPosition() {
@@ -89,48 +95,58 @@ export default class Game {
     return Math.floor(Math.random() * (max + 1))
   }
 
-  createParticles() {
-
+  createParticles(particleAmmount) {
     const clipPos = this.getMaskPosition();
-
-    if (this.particles.length <= this.config.particleAmmount) {
-      for (let index = this.particles.length; index < this.config.particleAmmount; index++) {
-        const position = {
-          x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
-          y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
-        }
-        let config = {
-          ...this.config,
-          position
-        }
-        this.particles.push(
-          new Particle(this.canvas, config)
-        )
+    const particles = []
+    for (let index = 0; index < particleAmmount; index++) {
+      const position = {
+        x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
+        y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
       }
-    } else if (this.particles.length > this.config.particleAmmount) {
-      const ex = this.particles.length - this.config.particleAmmount
-      this.particles.splice(0, ex)
+      let config = {
+        ...this.config,
+        position
+      }
+      particles.push(
+        new Particle(this.canvas, config)
+      )
     }
+    this.particles = particles;
+  }
 
+  updateParticles() {
+    if (this.config.particleAmmount > this.particles.length) {
+      this.createParticles(this.config.particleAmmount)
+    } else if (this.config.particleAmmount < this.particles.length) {
+      const diff = this.particles.length - this.config.particleAmmount
+      this.particles.splice(0, diff)
+    }
     this.particles.forEach((particle) => {
-      particle.setConfig(this.config)
       if (particle.type === 'particle') {
+        particle.setConfig(this.config)
       }
     })
   }
 
   addSomeBoxes() {
     const clipPos = this.getMaskPosition();
-    const position = {
-      x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
-      y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
-    }
-    const config = {
+    const newBox = new Box(this.canvas, {
       ...this.config,
-      position, width: 80, height: 40, radius: 0
-    }
-    const newBox = new Box(this.canvas, config)
+      color: "#fe37f4",
+      position: {
+        x: 20,
+        y: 20
+      }, width: 80, height: 40
+    })
+    const newBox2 = new Box(this.canvas, {
+      ...this.config,
+      position: {
+        x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
+        y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
+      }, width: 30, height: 30
+    })
     this.particles.push(newBox)
+    this.particles.push(newBox2)
   }
 
 }

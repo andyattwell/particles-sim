@@ -17,24 +17,21 @@ export default class Body {
   attractionForce = 0.03
   gravityForce = 0.003
 
-  constructor(props) {
-    // console.log(props)
-    this.x = props.position.x
-    this.y = props.position.y
+  baseColor = "#ffffff"
+  collitionColor = "#f62626"
 
-    if (props.radius && props.radius > 0) {
-      this.radius = props.radius
-      this.isCircle = true
-    }
-    this.width = props.width
-    this.height = props.height
-    this.containerWidth = props.containerWidth
-    this.containerHeight = props.containerHeight
-    this.friction = props.particleFriction
-    this.mass = props.particleMass
-    this.collitionForce = props.collitionForce
-    this.attractionForce = props.attractionForce
-    this.gravityForce = props.gravityForce
+  constructor(props) {
+    this.setConfig(props)
+  }
+
+  draw() {
+    let boundingBox = this.getBoundingBox()
+    this.ctx.beginPath();
+    this.ctx.rect(boundingBox.left, boundingBox.top, boundingBox.width, boundingBox.height);
+    this.ctx.lineWidth = 2; // Border width
+    this.ctx.strokeStyle = '#FFFFFF'; // Border color
+    this.ctx.stroke();
+    this.ctx.closePath();
   }
 
   update() {
@@ -50,8 +47,8 @@ export default class Body {
       halfSizeX = this.radius / 2
       halfSizeY = halfSizeX
     } else {
-      this.halfSizeX = this.width / 2
-      this.halfSizeY = this.height / 2
+      halfSizeX = this.width / 2
+      halfSizeY = this.height / 2
     }
     const nextX = this.x + this.velocityX
     const nextY = this.y + this.velocityY
@@ -59,35 +56,36 @@ export default class Body {
     // Check X bounds
     const clipX = this.canvas.width / 2 - this.containerWidth / 2
     const clipY = this.canvas.height / 2 - this.containerHeight / 2
+    const boundWidth = clipX + this.containerWidth - 5
+    const boundHeight = clipY + this.containerHeight - 5
 
-    const boundWidth = clipX + this.containerWidth
-    const boundHeight = clipY + this.containerHeight
-    if (nextX - halfSizeX < clipX || nextX + halfSizeX > boundWidth) {
+    const boundingBox = this.getBoundingBox();
+
+    if (boundingBox.left <= clipX || boundingBox.right >= boundWidth) {
       this.velocityX *= -1
       // Adjust position to be within bounds after reversing velocity
-      if (nextX - halfSizeX < clipX) {
-        this.x = clipX + halfSizeX
-      } else if (nextX + halfSizeX > boundWidth) {
-        this.x = boundWidth - halfSizeX * 2
+      if (boundingBox.left <= clipX) {
+        this.x = clipX + boundingBox.width
+      } else if (boundingBox.right >= boundWidth) {
+        this.x = boundWidth - boundingBox.width
       }
     } else {
       this.x = nextX
     }
 
     // Check Y bounds
-    if (nextY - halfSizeY < clipY || nextY + halfSizeY > boundHeight) {
+    if (boundingBox.top < clipY || boundingBox.bottom > boundHeight) {
       this.velocityY *= -1
       // Adjust position to be within bounds after reversing velocity
-      if (nextY - halfSizeY < clipY) {
-        this.y = clipY + halfSizeY
-      } else if (nextY + halfSizeY > boundHeight) {
-        this.y = boundHeight - halfSizeY * 2
+      if (boundingBox.top < clipY) {
+        this.y = clipY + boundingBox.height
+      } else if (boundingBox.bottom > boundHeight) {
+        // this.y = boundHeight - halfSizeY * 2
+        this.y = boundHeight - boundingBox.height / 8
       }
     } else {
       this.y = nextY
     }
-
-    // console.log(this.velocityX, this. velocityY)
 
     // Apply friction to gradually slow down the object
     this.velocityX *= this.friction
@@ -100,11 +98,17 @@ export default class Body {
 
   applyForce(forceMagnitude, direction) {
     // Apply force based on the direction vector
+    if (!direction) {
+      return;
+    }
     this.velocityX += (forceMagnitude * direction.x) / this.mass
     this.velocityY += (forceMagnitude * direction.y) / this.mass
   }
 
   applyAttraction(obj2) {
+    if (obj2.attractionForce === 0) {
+      return
+    }
     const dx = obj2.x - this.x
     const dy = obj2.y - this.y
     const distance = Math.sqrt(dx * dx + dy * dy)
@@ -125,20 +129,106 @@ export default class Body {
     }
   }
 
-  setConfig(config) {
-    this.radius = config.radius
-    this.width = config.width
-    this.height = config.height
-    this.containerWidth = config.containerWidth
-    this.containerHeight = config.containerHeight
-    this.friction = config.particleFriction
-    this.mass = config.particleMass
-    this.collitionForce = config.collitionForce
-    this.attractionForce = config.attractionForce
-    this.gravityForce = config.gravityForce
+  setConfig(props) {
+    if (props.position) {
+      this.x = props.position.x
+      this.y = props.position.y
+    }
+
+    if (props.radius && props.radius > 0) {
+      this.radius = props.radius
+      this.height = props.radius / 2
+      this.width = props.radius / 2
+      this.isCircle = true
+    }
+    this.width = props.width
+    this.height = props.height
+    this.containerWidth = props.containerWidth
+    this.containerHeight = props.containerHeight
+    this.friction = props.particleFriction
+    this.mass = props.particleMass
+    this.collitionForce = props.collitionForce
+    this.attractionForce = props.attractionForce
+    this.gravityForce = props.gravityForce           
+    if (props.color) {
+      this.baseColor = props.color
+      this.color = props.color
+    }
+  }
+
+  getBoundingBox() {
+    let left, right, top, bottom;
+    let width = this.width
+    let height = this.height
+
+    if (this.radius > 0) {
+      width = this.radius + this.radius / 2
+      height = this.radius + this.radius / 2
+      left = this.x - width / 2;
+      right = left + width;
+      top = this.y - height / 2;
+      bottom = top + height;
+    } else {
+      left = this.x;
+      right = left + width;
+      top = this.y;
+      bottom = top + height;
+    }
+
+    return {
+      left: Math.floor(left),
+      right: Math.floor(right),
+      top: Math.floor(top),
+      bottom: Math.floor(bottom),
+      width, height
+    };
   }
 
   checkCollition(target) {
+    const { direction, distance } = this.getDirectionTo(target);
+    // if (distance <= 0 || !direction.x || !direction.y) {
+    //   return { isColliding: false, direction };
+    // }
+    const boundingBox = this.getBoundingBox();
+    const targetBoundingBox = target.getBoundingBox();
+
+    const isTop = (boundingBox.top >= targetBoundingBox.top && boundingBox.top <= targetBoundingBox.bottom)
+    const isBottom = (boundingBox.bottom <= targetBoundingBox.bottom && boundingBox.bottom >= targetBoundingBox.top)
+    const isLeft = (boundingBox.left >= targetBoundingBox.left && boundingBox.left <= targetBoundingBox.right)
+    const isRight = (boundingBox.right <= targetBoundingBox.right && boundingBox.right >= targetBoundingBox.left)
+
+    const isColliding = (isTop || isBottom) && (isLeft || isRight)
+
+    return { isColliding, direction };
+  }
+
+  getDirectionTo(target) {
+    let dx, dy;
+
+    if (this.radius > 0 || target.radius) {
+      // For circular objects
+      dx = target.x - this.x;
+      dy = target.y - this.y;
+    } else {
+      // For rectangular objects, compute center points
+      const centerX1 = this.x + this.width / 2;
+      const centerY1 = this.y + this.height / 2;
+      const centerX2 = target.x + target.width / 2;
+      const centerY2 = target.y + target.height / 2;
+
+      dx = centerX2 - centerX1;
+      dy = centerY2 - centerY1;
+    }
+
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Normalize the direction vector
+    const direction = { x: (dx / distance) * -1, y: (dy / distance) * -1 };
+
+    return { direction, distance };
+  }
+
+  checkCollition_v1(target) {
     let isColliding = false
     let dx = 0
     let dy = 0
@@ -228,11 +318,7 @@ export default class Body {
     }
 
     const direction = isColliding ? { x: dx / distance, y: dy / distance } : null
-
-    if (isColliding) {
-      this.collideWith(target, direction)
-    }
-
+    
     return {
       isColliding,
       direction
@@ -241,24 +327,27 @@ export default class Body {
 
   collideWith(target, direction) {
     // this.color = "#9500DD";
-    let force = this.collitionForce
-    if (this.selected) {
-      force *= 5
+    if (!target) {
+      return false;
     }
 
-    target.applyForce(force, {
-      x: direction.x * -1,
-      y: direction.y * -1
-    })
+    if (this.collitionForce > 0) {
+      let force = this.collitionForce
+      if (this.selected) {
+        force *= 5
+      }
 
-    if (!this.selected) {
-      this.applyForce(this.collitionForce, direction)
-    } else {
-      target.color = '#ffffff'
-      setTimeout(() => {
-        target.color = target.baseColor
-      }, 1000)
+      // target.applyForce(force, direction)
+      if (!this.selected) {
+        this.applyForce(this.collitionForce, direction)
+      } else {
+        target.color = target.collitionColor
+        setTimeout(() => {
+          target.color = target.baseColor
+        }, 1000)
+      }
     }
+
   }
 
   move(x, y) {
@@ -272,46 +361,11 @@ export default class Body {
     this.y = y - height / 2
   }
 
-  getBoundingbox() {
-    let left = 0
-    let right = 0
-    let top = 0
-    let bottom = 0
-
-    if (this.radius > 0) {
-      left = this.x - this.radius / 2
-      right = left + this.radius
-      top = this.y - this.radius / 2
-      bottom = top + this.radius
-    } else {
-      left = this.x
-      right = left + this.width
-      top = this.y
-      bottom = top + this.height
-    }
-
-    return {
-      left: Math.floor(left),
-      right: Math.floor(right),
-      top: Math.floor(top),
-      bottom: Math.floor(bottom)
-    }
-  }
-
   isClicked(inBounds) {
-    let boundingBox = this.getBoundingbox()
-
-    if (
-      inBounds.x >= boundingBox.left &&
+    let boundingBox = this.getBoundingBox()
+    return (inBounds.x >= boundingBox.left &&
       inBounds.x <= boundingBox.right &&
       inBounds.y >= boundingBox.top &&
-      inBounds.y <= boundingBox.bottom
-    ) {
-      // particle.select()
-      return true
-    } else {
-      // particle.deselect()
-      return false
-    }
+      inBounds.y <= boundingBox.bottom)
   }
 }
