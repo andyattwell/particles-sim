@@ -3,16 +3,16 @@ import { GameControl, INITIAL_CONFIG } from '../utils/GameControl.js'
 
 type Config = {
   profileName: string
-  particleSize: number
+  radius: number
   particleAmmount: number
   particleMass: number
   particleFriction: number
   attractionForce: number
   collitionForce: number
   gravityForce: number
-  canvasWidth: number
+  containerWidth: number
   canvasMaxWidth?: number
-  canvasHeight: number
+  containerHeight: number
   canvasMaxHeight?: number
 }
 
@@ -118,7 +118,6 @@ export default {
         this.panelWidth = next;
         this.startX = event.clientX
       }
-      // this.config.canvasWidth += this.startX - event.clientX
     },
     stopDrag() {
       this.isDragging = false;
@@ -174,14 +173,14 @@ export default {
                 </div>
               </div>
               <div class="row mb-3">
-                <label for="canvasWidth" class="col-4 text-end">Width</label>
+                <label for="containerWidth" class="col-4 text-end">Width</label>
                 <div class="col-5">
                   <input
                     type="range"
                     min="100"
                     :max="config.canvasMaxWidth"
                     class="form-range"
-                    v-model="config.canvasWidth"
+                    v-model="config.containerWidth"
                   />
                 </div>
                 <div class="col-3">
@@ -191,19 +190,19 @@ export default {
                     min="100"
                     :max="config.canvasMaxWidth"
                     class="form-control form-control-sm particle-controls"
-                    v-model="config.canvasWidth"
+                    v-model="config.containerWidth"
                   />
                 </div>
               </div>
               <div class="row mb-3">
-                <label for="canvasHeight" class="col-4 text-end">Height</label>
+                <label for="containerHeight" class="col-4 text-end">Height</label>
                 <div class="col-5">
                   <input
                     type="range"
                     min="100"
                     :max="config.canvasMaxHeight"
                     class="form-range"
-                    v-model="config.canvasHeight"
+                    v-model="config.containerHeight"
                   />
                 </div>
                 <div class="col-3">
@@ -213,7 +212,7 @@ export default {
                     min="100"
                     :max="config.canvasMaxHeight"
                     class="form-control form-control-sm particle-controls"
-                    v-model="config.canvasHeight"
+                    v-model="config.containerHeight"
                   />
                 </div>
               </div>
@@ -252,14 +251,14 @@ export default {
                 </div>
               </div>
               <div class="row mb-3">
-                <label for="particleSize" class="col-4 text-end">Size</label>
+                <label for="radius" class="col-4 text-end">Size</label>
                 <div class="col-5">
                   <input
                     type="range"
                     min="3"
                     max="50"
                     class="form-range"
-                    v-model="config.particleSize"
+                    v-model="config.radius"
                   />
                 </div>
                 <div class="col-3">
@@ -267,7 +266,7 @@ export default {
                     type="number"
                     step="0.001"
                     class="form-control form-control-sm particle-controls"
-                    v-model="config.particleSize"
+                    v-model="config.radius"
                   />
                 </div>
               </div>

@@ -1,20 +1,22 @@
 import Particle from './Particle'
+import Box from './Box'
 
 export default class Game {
   canvas
   ctx
   particles = []
+  boxes = []
   config
 
   constructor(canvas, config) {
     this.config = config
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
-
   }
 
   start() {
     this.createParticles()
+    this.addSomeBoxes()
     this.update()
   }
 
@@ -33,36 +35,24 @@ export default class Game {
 
     this.ctx.save();
 
-    const clipWidth = this.config.canvasWidth; // Example: Width to clip
-    const clipHeight = this.config.canvasHeight; // Example: Height to clip
-    const clipX = this.canvas.width / 2 - this.config.canvasWidth / 2
-    const clipY = this.canvas.height / 2 - this.config.canvasHeight / 2
-    this.ctx.beginPath();
-    this.ctx.rect(clipX, clipY, clipWidth, clipHeight);
-    this.ctx.clip();
-    this.ctx.lineWidth = 2; // Border width
-    this.ctx.strokeStyle = 'white'; // Border color
-    this.ctx.stroke();
+    this.drawClippingMask();
 
     this.particles.forEach((particle, index1) => {
       particle.draw()
       particle.update()
-      self.applyGravity(particle, this.config.gravityForce)
 
       self.particles.forEach((particle2, index2) => {
         if (index1 !== index2) {
           // Check collision
-          const collition = particle.checkCollition(particle2)
-          if (collition.isColliding) {
-            particle.collideWith(particle2, collition.direction)
-          } else {
-            // particle2.resetColor()
-          }
-
+          particle.checkCollition(particle2)
           // Apply attraction
-          self.applyAttraction(particle, particle2, this.config.attractionForce)
+          particle.applyAttraction(particle2, this.config.attractionForce)
         }
       })
+    })
+
+    this.boxes.forEach(box => {
+      box.draw()
     })
     
     // Restore the canvas state to remove clipping for future drawings
@@ -73,25 +63,48 @@ export default class Game {
     })
   }
 
-  createParticles() {
-    function getRandomNumber(max) {
-      return Math.floor(Math.random() * (max + 1))
-    }
+  drawClippingMask() {
+    const clipWidth = this.config.containerWidth; // Example: Width to clip
+    const clipHeight = this.config.containerHeight; // Example: Height to clip
+    const clipX = this.canvas.width / 2 - this.config.containerWidth / 2
+    const clipY = this.canvas.height / 2 - this.config.containerHeight / 2
+    this.ctx.beginPath();
+    this.ctx.rect(clipX, clipY, clipWidth, clipHeight);
+    this.ctx.clip();
+    this.ctx.lineWidth = 2; // Border width
+    this.ctx.strokeStyle = 'white'; // Border color
+    this.ctx.stroke();
+  }
 
-    const clipX = this.canvas.width / 2 - this.config.canvasWidth / 2
-    const clipY = this.canvas.height / 2 - this.config.canvasHeight / 2
+  getMaskPosition() {
+    const clipX = this.canvas.width / 2 - this.config.containerWidth / 2
+    const clipY = this.canvas.height / 2 - this.config.containerHeight / 2
+    return {
+      x: clipX,
+      y: clipY
+    }
+  }
+
+  getRandomNumber(max) {
+    return Math.floor(Math.random() * (max + 1))
+  }
+
+  createParticles() {
+
+    const clipPos = this.getMaskPosition();
 
     if (this.particles.length <= this.config.particleAmmount) {
       for (let index = this.particles.length; index < this.config.particleAmmount; index++) {
+        const position = {
+          x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
+          y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
+        }
+        let config = {
+          ...this.config,
+          position
+        }
         this.particles.push(
-          new Particle(
-            this.canvas,
-            {
-              x: clipX + getRandomNumber(this.config.canvasWidth),
-              y: clipY + getRandomNumber(this.config.canvasHeight)
-            },
-            this.config
-          )
+          new Particle(this.canvas, config)
         )
       }
     } else if (this.particles.length > this.config.particleAmmount) {
@@ -100,29 +113,24 @@ export default class Game {
     }
 
     this.particles.forEach((particle) => {
-      particle.config = this.config
+      particle.setConfig(this.config)
+      if (particle.type === 'particle') {
+      }
     })
   }
 
-  applyAttraction(obj1, obj2, attractionStrength = 0.03) {
-    const dx = obj2.x - obj1.x
-    const dy = obj2.y - obj1.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    if (distance > 0) {
-      const forceMagnitude = attractionStrength / distance
-      const forceX = (dx / distance) * forceMagnitude
-      const forceY = (dy / distance) * forceMagnitude
-      obj1.applyForce(0.1, { x: forceX, y: forceY })
+  addSomeBoxes() {
+    const clipPos = this.getMaskPosition();
+    const position = {
+      x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
+      y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
     }
-  }
-
-  applyGravity(object, gravityStrength = 0.003) {
-    const clipY = this.canvas.height / 2 - this.config.canvasHeight / 2
-    const dy = clipY + this.config.canvasHeight - object.y
-    if (dy > 0) {
-      const forceY = dy * gravityStrength
-      object.applyForce(1, { x: 0, y: forceY })
+    const config = {
+      ...this.config,
+      position, width: 80, height: 40, radius: 0
     }
+    const newBox = new Box(this.canvas, config)
+    this.particles.push(newBox)
   }
 
 }

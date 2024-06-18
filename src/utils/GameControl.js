@@ -2,15 +2,15 @@ import Game from './Game';
 
 export const INITIAL_CONFIG = {
   profileName: 'Default',
-  particleSize: 10,
+  radius: 10,
   particleAmmount: 100,
   particleMass: 2.5,
   particleFriction: 0.95,
   attractionForce: 0.4,
   collitionForce: 0.4,
   gravityForce: 0.003,
-  canvasWidth: 300,
-  canvasHeight: 300,
+  containerWidth: 300,
+  containerHeight: 300,
   canvasMaxWidth: 500,
   canvasMaxHeight: 500
 }
@@ -82,11 +82,11 @@ export class GameControl {
     this.config.canvasMaxWidth = width;
     this.config.canvasMaxHeight = height;
 
-    if (this.config.canvasWidth > width) {
-      this.config.canvasWidth = width;
+    if (this.config.containerWidth > width) {
+      this.config.containerWidth = width;
     }
-    if (this.config.canvasHeight > height) {
-      this.config.canvasHeight = height;
+    if (this.config.containerHeight > height) {
+      this.config.containerHeight = height;
     }
 
     this.saveConfig(this.config);
@@ -166,10 +166,10 @@ export class GameControl {
     const windowHeight = this.canvas.height
     const windowWidth = this.canvas.width
 
-    let canvasLeft = windowWidth / 2 - parseInt(this.config.canvasWidth) / 2
-    let canvasRight = canvasLeft + parseInt(this.config.canvasWidth)
-    let canvasTop = windowHeight / 2 - parseInt(this.config.canvasHeight) / 2
-    let canvasBottom = canvasTop + parseInt(this.config.canvasHeight)
+    let canvasLeft = windowWidth / 2 - parseInt(this.config.containerWidth) / 2
+    let canvasRight = canvasLeft + parseInt(this.config.containerWidth)
+    let canvasTop = windowHeight / 2 - parseInt(this.config.containerHeight) / 2
+    let canvasBottom = canvasTop + parseInt(this.config.containerHeight)
     const canvasPosition = this.canvas.getBoundingClientRect()
 
     if (pageX < canvasLeft || pageX > canvasRight || pageY < canvasTop || pageY > canvasBottom) {
@@ -258,16 +258,16 @@ export class GameControl {
   applyConfig(config, reload) {
     this.config = config
     
-    this.config.particleSize = parseInt(this.config.particleSize)
+    this.config.radius = parseInt(this.config.radius)
     this.config.attractionForce = parseFloat(this.config.attractionForce)
-    this.config.canvasHeight = parseInt(this.config.canvasHeight)
-    this.config.canvasWidth = parseInt(this.config.canvasWidth)
+    this.config.containerHeight = parseInt(this.config.containerHeight)
+    this.config.containerWidth = parseInt(this.config.containerWidth)
     this.config.collitionForce = parseFloat(this.config.collitionForce)
     this.config.gravityForce = parseFloat(this.config.gravityForce)
     this.config.particleAmmount = parseInt(this.config.particleAmmount)
     this.config.particleFriction = parseFloat(this.config.particleFriction)
     this.config.particleMass = parseFloat(this.config.particleMass)
-    this.config.particleSize = parseFloat(this.config.particleSize)
+    this.config.radius = parseFloat(this.config.radius)
     this.selectedProfile = this.config.profileName
 
     if (reload) {
@@ -275,6 +275,7 @@ export class GameControl {
     } else if (this.game) {
       this.game.config = this.config
       this.game.createParticles()
+      this.game.addSomeBoxes()
     }
   }
 

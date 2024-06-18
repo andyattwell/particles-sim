@@ -17,14 +17,15 @@ This template should help get you started developing with Vue 3 in Vite.
 ## TODO
 - Alpha particles
     - Stronger attraction
-    - Competes with othe alphas
+    - Competes with other alphas
 - Damage by collition?
     - The particles die
     - Cometition?
 - Diferent types of particles
     - Diferent types of interactions
+- Other types of objects with collition
 - Player
-    - Control with keboard
+    - Control with keyboard
 
 ## Recommended IDE Setup
 
