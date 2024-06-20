@@ -33,18 +33,4 @@ export default class Box extends Body {
       this.ctx.fill()
       this.ctx.closePath()
     }
-
-    select() {
-        this.selected = true
-        this.color = '#f5ff08'
-        this.velocityX = 0
-        this.velocityY = 0
-    }
-
-    deselect() {
-        this.color = "#FFFFFF"
-        this.selected = false
-        this.velocityX = 0
-        this.velocityY = 0
-    }
 }

@@ -47,7 +47,8 @@ export default {
         if (event.button === 0) {
           const selected = self.gameControls.handleClick(event)
           if (selected) {
-            this.selectedObject = {...selected}
+            this.selectedObject = selected
+            this.selectedObject.isDragging = true;
           }
           document.addEventListener('mousemove', mouseMove)
         }
@@ -75,6 +76,8 @@ export default {
         event.preventDefault();
         // Your custom logic here
         self.changeTool('')
+        self.gameControls.handleRightClick();
+        self.selectedObject = null;
       });
     },
     changeTool(tool:string) {

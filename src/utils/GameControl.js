@@ -122,12 +122,25 @@ export class GameControl {
     this.mouse.isMouseDown = true
 
     if (particle) {
+
+      if (this.selectedParticle && particle.id !== this.selectedParticle.id) {
+        this.selectedParticle.deselect();
+      }
+
       this.selectedParticle = particle;
+      // this.selectedParticle.isDragging = true;
       this.selectedParticle.select();
       return this.selectedParticle
     }
 
     return false;
+  }
+
+  handleRightClick() {
+    if (this.selectedParticle) {
+      this.selectedParticle.deselect()
+      this.selectedParticle = null
+    }
   }
 
   handleMouseUp(event) {
@@ -136,15 +149,16 @@ export class GameControl {
     this.mouse.endX = event.clientX;
     this.mouse.endY = event.clientY;
     this.mouse.isMouseDown = false;
+    if (this.selectedParticle) {
+      this.selectedParticle.isDragging = false
+    }
 
-    
-    this.selectedParticle?.deselect();
     // const direction = this.determineDirection(this.mouse.startX, this.mouse.startY, this.mouse.endX, this.mouse.endY);
     // this.selectedParticle?.applyForce(10, {
     //   x: direction.x * 2,
     //   y: direction.y * 2
     // });
-    this.selectedParticle = null
+    // this.selectedParticle = null
   }
 
   handleMouseMove(event) {
@@ -153,7 +167,7 @@ export class GameControl {
       return;
     }
 
-    if (this.selectedParticle) {
+    if (this.selectedParticle && this.selectedParticle.isDragging) {
       this.moveParticle(this.selectedParticle, event.clientX, event.clientY)
     }
 
@@ -180,14 +194,19 @@ export class GameControl {
     const boundHeight = clipY + containerHeight
     const boundingBox = particle.getBoundingBox(nextX, nextY);
 
+    if (!particle.isCircle) { 
+      nextX = boundingBox.left
+      nextY = boundingBox.top
+    }
+
     if (boundingBox.left < clipX) {
-      nextX = clipX + (particle.isCircle ? particle.radius : particle.width)
+      nextX = clipX + (particle.isCircle ? particle.radius : 0)
     } else if (boundingBox.right > boundWidth) {
       nextX = boundWidth - (particle.isCircle ? particle.radius : particle.width) 
     }
 
     if (boundingBox.top <= clipY) {
-      nextY = clipY +  (particle.isCircle ? particle.radius : particle.height) + 2;
+      nextY = clipY +  (particle.isCircle ? particle.radius : 0) + 2;
     } else if (boundingBox.bottom > boundHeight) {
       nextY = boundHeight - (particle.isCircle ? particle.radius : particle.height) + 2;
     }

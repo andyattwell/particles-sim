@@ -14,8 +14,8 @@ export default class Game {
   }
 
   start() {
-    this.createParticles(10, 'particle')
-    this.createParticles(5, 'box')
+    this.createParticles(1, 'particle')
+    this.createParticles(1, 'box')
     this.update()
   }
 

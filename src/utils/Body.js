@@ -16,7 +16,8 @@ export default class Body {
   attractionForce = 0.5
   gravityForce = 0.05
   isCircle = false
-  grounded = false;
+  grounded = false
+  isDragging = false
 
   baseColor = "#ffffff"
   collitionColor = "#f62626"
@@ -41,15 +42,22 @@ export default class Body {
     objects.forEach((particle2, index2) => {
       if (index !== index2) {
         // Apply attraction
-        this.applyAttraction(particle2)
         // Check collision
         const collition = this.checkCollition(particle2);
         if (collition.isColliding === true) {
-          this.collideWith(particle2, collition.direction)
+          this.collideWith(particle2, {
+            x: collition.direction.x * -1,
+            y: collition.direction.y * -1,
+          })
         }
+
+        this.applyAttraction(particle2)
       }
     })
-    if (this.selected) {
+
+    if (this.isDragging) {
+      this.velocityX = 0
+      this.velocityY = 0
       return
     }
 
@@ -101,10 +109,10 @@ export default class Body {
     if (boundingBox.top <= clipY || boundingBox.bottom >= boundHeight) {
       // Adjust position to be within bounds after reversing velocity
       this.velocityY *= -1
-      if (boundingBox.top <= clipY) {
-        nextY = clipY +  (this.isCircle ? this.radius : this.height) + 2;
+      if (boundingBox.top < clipY) {
+        nextY = clipY + (this.isCircle ? this.radius : 1);
       } else if (boundingBox.bottom > boundHeight) {
-        nextY = boundHeight - (this.isCircle ? this.radius : this.height) + 2;
+        nextY = boundHeight - (this.isCircle ? this.radius : this.height);
       }
       
     }
@@ -352,24 +360,27 @@ export default class Body {
     }
 
     if (this.collitionForce > 0) {
-      let force = this.collitionForce
-      if (this.selected) {
-        force *= 5
-      }
-      
-      // target.applyForce(force, direction, 'collition¿)
-      if (!this.selected) {
-        this.applyForce(force, direction, 'collition')
-
-        if (this.color !== this.collitionColor) {
-          this.color = this.collitionColor
+      target.applyForce(this.collitionForce, direction)
+      if (!this.isDragging) {
+        this.applyForce(target.collitionForce, {
+          x: direction.x * -1,
+          y: direction.y * -1,
+        })
+        if (!this.selected && (this.color !== this.collitionColor)) {
+          this.setColor(this.collitionColor)
           setTimeout(() => {
-            this.color = this.baseColor
+            this.setColor(this.baseColor)
           }, 1000)
         }
       }
     }
 
+  }
+
+  setColor (color){
+    if (!this.selected) {
+      this.color = color
+    }
   }
 
   isClicked(inBounds) {
@@ -379,4 +390,20 @@ export default class Body {
       inBounds.y >= boundingBox.top &&
       inBounds.y <= boundingBox.bottom)
   }
+
+  deselect() {
+    this.color = this.baseColor
+    this.isDragging = false
+    this.selected = false
+    this.velocityX = 0
+    this.velocityY = 0
+  }
+
+  select() {
+      this.selected = true
+      this.color = '#f5ff08'
+      this.velocityX = 0
+      this.velocityY = 0
+  }
+
 }

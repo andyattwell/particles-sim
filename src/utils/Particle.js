@@ -22,26 +22,4 @@ export default class Particle extends Body {
     this.ctx.closePath()
     // super.draw()
   }
-
-  select() {
-    this.selected = true
-    this.color = '#f5ff08'
-    this.velocityX = 0
-    this.velocityY = 0
-  }
-
-  deselect() {
-    
-    setTimeout(() => {
-      this.resetColor()
-    }, 1000);
-    this.selected = false
-    this.velocityX = 0
-    this.velocityY = 0
-  }
-
-  resetColor() {
-    this.color = this.baseColor
-  }
-
 }
