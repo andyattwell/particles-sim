@@ -2,24 +2,28 @@ import Body from './Body'
 export default class Box extends Body {
     // radius = 10
     radius = 0
-    mass = 40
+    width = 20
+    height = 20
     friction = 0.95
-    attractionForce = 100
-    collitionForce = 30
-    gravityForce = 0
-    // color = "#FFFFFF"
+    mass = 1
+    collitionForce = 0.5
+    attractionForce = 0.5
+    gravityForce = 0.05
+    baseColor = "#696969"
+    color = "#696969"
+    isCircle = false
     type = 'box'
 
-    constructor(canvas, props) {
-        super(props)
+    constructor(game, props) {
+        super(game, props)
         if (!props.height) {
             this.height = 20
         }
         if (!props.width) {
             this.width = 20
         }
-        this.canvas = canvas
-        this.ctx = canvas.getContext('2d')
+        this.canvas = game.canvas
+        this.ctx = this.canvas.getContext('2d')
     }
 
     draw() {

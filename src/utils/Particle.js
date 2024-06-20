@@ -4,13 +4,14 @@ export default class Particle extends Body {
   color = '#0095DD'
   baseColor = '#0095DD'
   selected = false
-  size = 20
+  radius = 20
+  isCircle = true
   type = 'particle'
 
-  constructor(canvas, props) {
-    super(props)
-    this.canvas = canvas
-    this.ctx = canvas.getContext('2d')
+  constructor(game, props) {
+    super(game, props)
+    this.canvas = game.canvas
+    this.ctx = this.canvas.getContext('2d')
   }
   
   draw() {
@@ -19,6 +20,9 @@ export default class Particle extends Body {
     this.ctx.fillStyle = this.color
     this.ctx.fill()
     this.ctx.closePath()
+    
+    super.draw()
+
   }
 
   select() {

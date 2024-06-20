@@ -1,61 +1,104 @@
 <script lang="ts">
-import { INITIAL_CONFIG } from '../utils/GameControl.js'
 import ObjectsMenu from './ObjectsMenu.vue'
 type Config = {
-  profileName: string
-  radius: number
-  particleAmmount: number
-  particleMass: number
-  particleFriction: number
-  attractionForce: number
-  collitionForce: number
-  gravityForce: number
-  containerWidth: number
+  particles?: any
+  profileName?: string
+  particleAmmount?: number
+  containerWidth?: number
   canvasMaxWidth?: number
-  containerHeight: number
+  containerHeight?: number
   canvasMaxHeight?: number
 }
 
+type Particle = {
+  id?: number,
+  mass?: number
+  friction?: number
+  attractionForce?: number
+  collitionForce?: number
+  gravityForce?: number
+  radius?: number
+  width?: number
+  height?: number
+}
+
 export default {
-  props: ['gameControls', 'selectedTool'],
+  props: ['gameControls', 'selectedTool', 'selectedObject'],
   components: {
     ObjectsMenu
   },
   data() {
-    const config: Config = INITIAL_CONFIG
+    const particle: Particle = {};
+    const config: Config = {}
     return {
       config: config,
-      profiles: [] as Config[],
-      selectedProfile: 'Default',
       panelWidth: 600,
       isDragging: false,
       startX: 0,
-      currentTab: 'profile'
+      currentTab: 'profile',
+      particle: particle
     }
   },
   mounted() {
     const self = this
     self.setPanelSize();
     
-    setTimeout(() => {
-      self.selectedProfile = this.gameControls.selectedProfile
-      self.profiles = this.gameControls.profiles
-      self.config = this.gameControls.config
-      self.gameControls.start();
-    }, 500)
+    
+    // setTimeout(() => {
+    //   // self.gameControls.start();
+    // }, 500)
 
   },
+  computed: {
+    selectedProfile() {
+      return this.gameControls?.selectedProfile || 'Default'
+    },
+    // config() {
+    //   return this.gameControls?.profiles.find((profile:Config) => {
+    //     return profile.profileName === this.selectedProfile
+    //   })
+    // },
+    profiles() {
+      return this.gameControls?.profiles || [];
+    }
+  },
   watch: {
+    selectedObject: {
+      handler(newVal) {
+        this.particle = newVal
+      },
+      deep: true
+    },
+    gameControls: {
+      handler(gameControls) {
+        if (!gameControls) return;
+        this.config = gameControls.config
+      }
+    },
     config: {
       handler(newVal) {
         if (!newVal.selectedProfile) {
-          this.gameControls.saveConfig({ ...this.config, ...newVal })
+          if (newVal !== this.config) {
+            this.gameControls.saveConfig({ ...this.config, ...newVal })
+          }
         }
       },
       deep: true
     }
   },
   methods: {
+    updateConfig() {
+      this.gameControls.saveConfig(this.config)
+      this.gameControls.setCanvasSize()
+    },
+    updateParticle() {
+      this.gameControls.setParticleProps({
+        ...this.selectedObject,
+        ...this.particle
+      })
+      this.gameControls.saveConfig(this.config)
+      this.gameControls.setCanvasSize()
+    },
     changeTab(tab:string) {
       this.currentTab = tab
     },
@@ -64,11 +107,12 @@ export default {
     },
     setPanelSize() {
       // this.panelWidth = window.innerWidth - this.containerSize;
-      const lsWidth = localStorage.getItem('partsim-panelWidth');
-      if (lsWidth) {
-        this.panelWidth = parseInt(lsWidth)
-        this.$emit('resize', this.panelWidth)
+      let lsWidth:any = localStorage.getItem('partsim-panelWidth');
+      if (!lsWidth || lsWidth === '') {
+        lsWidth = document.getElementById('particle-controls')?.clientWidth;
       }
+      this.panelWidth = parseInt(lsWidth)
+      this.$emit('resize', this.panelWidth)
     },
     changeProfile() {
       if (this.selectedProfile === 'New') {
@@ -76,30 +120,30 @@ export default {
       }
       this.gameControls.changeProfile(this.selectedProfile)
       // this.selectedProfile = this.selectedProfile
-      this.profiles = this.gameControls.profiles;
-      this.config = this.gameControls.config;
+      // this.profiles = this.gameControls.profiles;
+      // this.config = this.gameControls.config;
     },
     addProfile() {
       const regex = /^New profile\s*\d*$/i;
-      const same = this.profiles.filter((p) => {
-        return regex.test(p.profileName);
+      const same = this.profiles.filter((p:Config) => {
+        return p.profileName && regex.test(p.profileName);
       });
       const sameCount = same.length > 0 ? ' ' + (same.length + 1) : ''
       const newConfig:Config = {
-        ...INITIAL_CONFIG,
+        ...this.config,
         profileName: 'New profile' + sameCount
       }
       // this.profiles.push(newConfig)
       this.gameControls.saveConfig(newConfig)
-      this.config = this.gameControls.config
-      this.selectedProfile = this.gameControls.selectedProfile
-      this.profiles = this.gameControls.profiles
+      // this.config = this.gameControls.config
+      // this.selectedProfile = this.gameControls.selectedProfile
+      // this.profiles = this.gameControls.profiles
     },
     deleteConfig() {
       this.gameControls.deleteConfig(this.selectedProfile)
-      this.profiles = this.gameControls.profiles
-      this.config = this.gameControls.config
-      this.selectedProfile = this.gameControls.selectedProfile
+      // this.profiles = this.gameControls.profiles
+      // this.config = this.gameControls.config
+      // this.selectedProfile = this.gameControls.selectedProfile
     },
     startDrag (event:any) {
       this.isDragging = true;
@@ -164,7 +208,10 @@ export default {
                     @change="changeProfile"
                     v-model="selectedProfile"
                   >
-                    <option :value="profile.profileName" v-for="profile in profiles">
+                    <option 
+                      v-for="profile in profiles" 
+                      :value="profile.profileName" 
+                      :key="profile.profileName">
                       {{ profile.profileName }}
                     </option>
                     <option value="New">Create profile</option>
@@ -179,191 +226,193 @@ export default {
                   </button>
                 </div>
               </div>
-              <div class="row mb-3">
-                <label for="profileName" class="col-4 text-end">Profile name</label>
-                <div class="col-8">
-                  <input
-                    type="text"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.profileName"
-                  />
+              <div v-if="config">
+                <div class="row mb-3">
+                  <label for="profileName" class="col-4 text-end">Profile name</label>
+                  <div class="col-8">
+                    <input
+                      type="text"
+                      class="form-control form-control-sm particle-controls"
+                      v-model="config.profileName"
+                      @change="updateConfig"
+                    />
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="containerWidth" class="col-4 text-end">Width</label>
+                  <div class="col-5">
+                    <input
+                      type="range"
+                      min="100"
+                      :max="config.canvasMaxWidth"
+                      class="form-range"
+                      v-model="config.containerWidth"
+                      @input="updateConfig"
+                    />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="1"
+                      min="100"
+                      :max="config.canvasMaxWidth"
+                      class="form-control form-control-sm particle-controls"
+                      v-model="config.containerWidth"
+                      @input="updateConfig"
+                    />
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="containerHeight" class="col-4 text-end">Height</label>
+                  <div class="col-5">
+                    <input
+                      type="range"
+                      min="100"
+                      :max="config.canvasMaxHeight"
+                      class="form-range"
+                      v-model="config.containerHeight"
+                      @input="updateConfig"
+                    />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="1"
+                      min="100"
+                      :max="config.canvasMaxHeight"
+                      class="form-control form-control-sm particle-controls"
+                      v-model="config.containerHeight"
+                      @input="updateConfig"
+                    />
+                  </div>
                 </div>
               </div>
-              <div class="row mb-3">
-                <label for="containerWidth" class="col-4 text-end">Width</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    min="100"
-                    :max="config.canvasMaxWidth"
-                    class="form-range"
-                    v-model="config.containerWidth"
-                  />
+
+              <div v-if="particle && particle.id">
+              
+                <div class="row mb-3">
+                  <label for="mass" class="col-4 text-end">Mass</label>
+                  <div class="col-5">
+                    <input type="range" class="form-range" @change="updateParticle" v-model="particle.mass" />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="0.01"
+                      class="form-control form-control-sm particle-controls"
+                      v-model="particle.mass"
+                      @change="updateParticle"
+                    />
+                  </div>
                 </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="1"
-                    min="100"
-                    :max="config.canvasMaxWidth"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.containerWidth"
-                  />
+                <div class="row mb-3">
+                  <label for="radius" class="col-4 text-end">Size</label>
+                  <div class="col-5">
+                    <input
+                      type="range"
+                      min="3"
+                      max="50"
+                      class="form-range"
+                      @change="updateParticle"
+                      v-model="particle.radius"
+                    />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="1"
+                      class="form-control form-control-sm particle-controls"
+                      @change="updateParticle"
+                      :value="particle.radius"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div class="row mb-3">
-                <label for="containerHeight" class="col-4 text-end">Height</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    min="100"
-                    :max="config.canvasMaxHeight"
-                    class="form-range"
-                    v-model="config.containerHeight"
-                  />
+                <div class="row mb-3">
+                  <label for="attractionForce" class="col-4 text-end">Attraction</label>
+                  <div class="col-5">
+                    <input
+                      type="range"
+                      step="0.010"
+                      min="-100"
+                      max="100"
+                      class="form-range"
+                      @change="updateParticle"
+                      v-model="particle.attractionForce"
+                    />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="0.010"
+                      class="form-control form-control-sm particle-controls"
+                      @change="updateParticle"
+                      v-model="particle.attractionForce"
+                    />
+                  </div>
                 </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="1"
-                    min="100"
-                    :max="config.canvasMaxHeight"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.containerHeight"
-                  />
+                <div class="row mb-3">
+                  <label for="gravityForce" class="col-4 text-end">Gravity</label>
+                  <div class="col-5">
+                    <input
+                      type="range"
+                      min="-0.15"
+                      max="0.15"
+                      step="0.0001"
+                      class="form-range"
+                      @change="updateParticle"
+                      v-model="particle.gravityForce"
+                    />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      class="form-control form-control-sm particle-controls"
+                      @change="updateParticle"
+                      v-model="particle.gravityForce"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div class="row mb-3">
-                <label for="particleAmmount" class="col-4 text-end">Particles</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1000"
-                    class="form-range"
-                    v-model="config.particleAmmount"
-                  />
+                <div class="row mb-3">
+                  <label for="collitionForce" class="col-4 text-end">Collition</label>
+                  <div class="col-5">
+                    <input type="range" class="form-range" v-model="particle.collitionForce"  @change="updateParticle"/>
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="0.001"
+                      class="form-control form-control-sm particle-controls"
+                      @change="updateParticle"
+                      v-model="particle.collitionForce"
+                    />
+                  </div>
                 </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="1"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.particleAmmount"
-                  />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="particleMass" class="col-4 text-end">Mass</label>
-                <div class="col-5">
-                  <input type="range" class="form-range" v-model="config.particleMass" />
-                </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="0.01"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.particleMass"
-                  />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="radius" class="col-4 text-end">Size</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    min="3"
-                    max="50"
-                    class="form-range"
-                    v-model="config.radius"
-                  />
-                </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="0.001"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.radius"
-                  />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="attractionForce" class="col-4 text-end">Attraction</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    step="0.010"
-                    min="-100"
-                    max="100"
-                    class="form-range"
-                    v-model="config.attractionForce"
-                  />
-                </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="0.010"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.attractionForce"
-                  />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="gravityForce" class="col-4 text-end">Gravity</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    min="-0.15"
-                    max="0.15"
-                    step="0.0001"
-                    class="form-range"
-                    v-model="config.gravityForce"
-                  />
-                </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="0.0001"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.gravityForce"
-                  />
+                <div class="row mb-3">
+                  <label for="friction" class="col-4 text-end">Friction</label>
+                  <div class="col-5">
+                    <input
+                      type="range"
+                      step="0.001"
+                      min="-1"
+                      max="1"
+                      class="form-range"
+                      @change="updateParticle"
+                      v-model="particle.friction"
+                    />
+                  </div>
+                  <div class="col-3">
+                    <input
+                      type="number"
+                      step="0.001"
+                      class="form-control form-control-sm particle-controls"
+                      @change="updateParticle"
+                      v-model="particle.friction"
+                    />
+                  </div>
                 </div>
               </div>
-              <div class="row mb-3">
-                <label for="collitionForce" class="col-4 text-end">Collition</label>
-                <div class="col-5">
-                  <input type="range" class="form-range" v-model="config.collitionForce" />
-                </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="0.001"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.collitionForce"
-                  />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="particleFriction" class="col-4 text-end">Friction</label>
-                <div class="col-5">
-                  <input
-                    type="range"
-                    step="0.001"
-                    min="-1"
-                    max="1"
-                    class="form-range"
-                    v-model="config.particleFriction"
-                  />
-                </div>
-                <div class="col-3">
-                  <input
-                    type="number"
-                    step="0.001"
-                    class="form-control form-control-sm particle-controls"
-                    v-model="config.particleFriction"
-                  />
-                </div>
-              </div>
+
               <div class="row">
                 <div class="col-12">
                   <!-- <button class="btn btn-primary me-2" @click.prevent="addProfile">Add</button> -->

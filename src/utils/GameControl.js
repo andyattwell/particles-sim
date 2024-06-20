@@ -1,11 +1,19 @@
 import Game from './Game';
+export const INITIAL_GAME_CONFIG = {
+  profileName: 'Default',
+  containerWidth: 300,
+  containerHeight: 300,
+  canvasMaxWidth: 500,
+  canvasMaxHeight: 500,
+  particles: []
+}
 
 export const INITIAL_CONFIG = {
   profileName: 'Default',
   radius: 10,
   particleAmmount: 100,
-  particleMass: 2.5,
-  particleFriction: 0.95,
+  mass: 2.5,
+  friction: 0.95,
   attractionForce: 0.4,
   collitionForce: 0.4,
   gravityForce: 0.003,
@@ -16,7 +24,8 @@ export const INITIAL_CONFIG = {
 }
 
 export class GameControl {
-  profiles = [INITIAL_CONFIG]
+  profiles = [INITIAL_GAME_CONFIG]
+  config = INITIAL_GAME_CONFIG
   selectedProfile = 'Default'
   selectedParticle = null
   mouse = {
@@ -31,34 +40,42 @@ export class GameControl {
   constructor(canvasId, config) {
     this.canvasId = canvasId
     this.canvas = document.getElementById(canvasId)
-    if (config) {
-      this.config = config
-    } else {
-      this.config = INITIAL_CONFIG
-    }
-    this.loadSavedConfig()
+    
+    // if (config) {
+    //   this.config = config
+    // } else {
+    //   this.config = INITIAL_CONFIG
+    // }
+
+    this.game = new Game(this.canvas, this.config)
+    // this.loadSavedConfig()
   }
 
   start() {
+    setTimeout(() => {
+      this.setCanvasSize();
+      this.game.start();
+    }, 100)
+  }
+
+  setCanvas() {
     this.canvas = document.getElementById(this.canvasId)
-    this.setCanvasSize();
-    this.game = new Game(this.canvas, this.config)
-    this.game.start()
   }
 
   setCanvasSize(containerWidth) {
     // const size = this.getCanvasSize();
+    this.setCanvas();
     const container = document.getElementById('canvas-container');
-    if (!container) {
-      return
-    }
-    let width = container.clientWidth;
-    let height = container.clientHeight;
+    // if (!container) {
+    //   return
+    // }
+    let width = parseInt(container.clientWidth);
+    let height = parseInt(container.clientHeight);
 
     if (containerWidth) {
-      width = containerWidth;
+      width = parseInt(containerWidth);
     }
-
+    
     this.canvas.setAttribute('width', width)
     this.canvas.setAttribute('height', height)
 
@@ -66,10 +83,10 @@ export class GameControl {
     this.config.canvasMaxHeight = height;
 
     if (this.config.containerWidth > width) {
-      this.config.containerWidth = width;
+      this.config.containerWidth = parseInt(width);
     }
     if (this.config.containerHeight > height) {
-      this.config.containerHeight = height;
+      this.config.containerHeight = parseInt(height);
     }
 
     this.saveConfig(this.config);
@@ -80,7 +97,6 @@ export class GameControl {
     const windowWidth = window.innerWidth
 
     const panelWidth = document.querySelector('#particle-controls').clientWidth + 20
-    // const panelWidth = document.getElementById('#canvas-container').clientWidth + 20
 
     return {
       width: windowWidth - panelWidth,
@@ -94,21 +110,24 @@ export class GameControl {
       return
     }
 
-    this.mouse.startX = inBounds.x
-    this.mouse.startY = inBounds.y
-    this.mouse.isMouseDown = true
-
     if (this.selectedTool) {
       this.handleTool(this.selectedTool, inBounds)
       return;
     }
 
     const particle = this.game.particles.find((p) => p.isClicked(inBounds))
+
+    this.mouse.startX = inBounds.x
+    this.mouse.startY = inBounds.y
+    this.mouse.isMouseDown = true
+
     if (particle) {
       this.selectedParticle = particle;
       this.selectedParticle.select();
+      return this.selectedParticle
     }
 
+    return false;
   }
 
   handleMouseUp(event) {
@@ -118,9 +137,9 @@ export class GameControl {
     this.mouse.endY = event.clientY;
     this.mouse.isMouseDown = false;
 
-    const direction = this.determineDirection(this.mouse.startX, this.mouse.startY, this.mouse.endX, this.mouse.endY);
-
+    
     this.selectedParticle?.deselect();
+    // const direction = this.determineDirection(this.mouse.startX, this.mouse.startY, this.mouse.endX, this.mouse.endY);
     // this.selectedParticle?.applyForce(10, {
     //   x: direction.x * 2,
     //   y: direction.y * 2
@@ -149,7 +168,9 @@ export class GameControl {
   }
 
   handleTool(tool, inBounds) {
-    this.game.addObject(tool, inBounds);
+    this.game.addObject(tool, {
+      position: inBounds
+    });
   }
 
   determineDirection(x1, y1, x2, y2) {
@@ -191,15 +212,16 @@ export class GameControl {
   }
 
   saveConfig(config) {
-    this.updateConfigProfile(config)
     this.applyConfig(config)
+    // this.updateConfigProfile(config)
   }
 
   changeProfile (profileName) {
-    const config = this.profiles.find((p) => p.profileName == profileName);
+    let config = this.profiles.find((p) => p.profileName == profileName);
     if (!config) {
       config = this.profiles[0]
     }
+    this.selectedProfile = config
     this.updateConfigProfile(config)
     this.applyConfig(config, true)
   }
@@ -210,9 +232,16 @@ export class GameControl {
     }
 
     let found = false;
-    const profiles = this.profiles.map((p) => {
+    this.profiles = this.profiles.map((p) => {
       if (p.profileName === config.profileName) {
         found = true
+        if (this.game && this.game.particles.length) {
+          p.particles = this.game.particles.map((p) => {
+            p.containerHeight = parseInt(this.config.containerHeight)
+            p.containerWidth = parseInt(this.config.containerHeight)
+            return p
+          })
+        }
         return config;
       }
       return p;
@@ -236,15 +265,15 @@ export class GameControl {
     try {
       const lsitem = localStorage.getItem('partsim-config');
       const storeData = JSON.parse(lsitem);
-      this.profiles = storeData.profiles
-      this.selectedProfile = storeData.selectedProfile
-      if (this.profiles.length && this.selectedProfile) {
-        this.changeProfile(this.selectedProfile)
+      if (!storeData?.profiles) return false;
+      
+      this.profiles = storeData?.profiles
+      if (this.profiles.length && storeData.selectedProfile) {
+        this.changeProfile(storeData.selectedProfile)
       } else {
         this.reloadConfig()
       }
       if (!storeData) {
-        console.log('No data stored');
         return;
       }
     } catch (error) {
@@ -255,29 +284,24 @@ export class GameControl {
 
   applyConfig(config, reload) {
     this.config = config
-    
-    this.config.radius = parseInt(this.config.radius)
-    this.config.attractionForce = parseFloat(this.config.attractionForce)
-    this.config.containerHeight = parseInt(this.config.containerHeight)
-    this.config.containerWidth = parseInt(this.config.containerWidth)
-    this.config.collitionForce = parseFloat(this.config.collitionForce)
-    this.config.gravityForce = parseFloat(this.config.gravityForce)
-    this.config.particleAmmount = parseInt(this.config.particleAmmount)
-    this.config.particleFriction = parseFloat(this.config.particleFriction)
-    this.config.particleMass = parseFloat(this.config.particleMass)
-    this.config.radius = parseFloat(this.config.radius)
-    this.selectedProfile = this.config.profileName
+    this.selectedProfile = config.profileName
 
     if (reload) {
       this.game?.reset(this.config)
     } else if (this.game) {
-      this.game.config = this.config
-      this.game.updateParticles()
+      this.game.config = config
+      // this.game.loadParticles(config.particles)
     }
   }
 
   reloadConfig() {
     localStorage.removeItem('partsim-config')
     this.saveConfig(INITIAL_CONFIG)
+  }
+
+  setParticleProps(newParticle) {
+    const particle = this.game.particles.find((p) => newParticle.id === p.id)
+    if(!particle) return;
+    particle.setConfig(newParticle);
   }
 }

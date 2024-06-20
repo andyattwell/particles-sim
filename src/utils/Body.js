@@ -1,26 +1,28 @@
 export default class Body {
+  type
+  id
   x = 0
   y = 0
-
-  dy = 2 // ?
-
   velocityX = 0
   velocityY = 0
   radius = 0
-  width = null
-  height = null
+  width = 0
+  height = 0
   containerWidth = 0
   containerHeight = 0
-  friction = 0
-  mass = 0
-  collitionForce = 0
-  attractionForce = 0.03
-  gravityForce = 0.003
+  friction = 0.95
+  mass = 1
+  collitionForce = 1
+  attractionForce = 0.5
+  gravityForce = 0.05
+  isCircle = false
+  grounded = false;
 
   baseColor = "#ffffff"
   collitionColor = "#f62626"
 
-  constructor(props) {
+  constructor(game, props) {
+    this.game = game
     this.setConfig(props)
   }
 
@@ -35,96 +37,83 @@ export default class Body {
   }
 
   update(index, objects) {
+    
+    objects.forEach((particle2, index2) => {
+      if (index !== index2) {
+        // Apply attraction
+        // this.applyAttraction(particle2)
+        // Check collision
+        const collition = this.checkCollition_v1(particle2);
+        if (collition.isColliding === true) {
+          this.collideWith(particle2, collition.direction)
+        }
+      }
+    })
     if (this.selected) {
       return
     }
 
     this.applyGravity()
 
-    let halfSizeX = 0
-    let halfSizeY = 0
-    if (this.isCircle) {
-      halfSizeX = this.radius / 2
-      halfSizeY = halfSizeX
-    } else {
-      halfSizeX = this.width / 2
-      halfSizeY = this.height / 2
-    }
-    let nextX = this.x + this.velocityX
-    let nextY = this.y + this.velocityY
-    // Check X bounds
-    const clipX = this.canvas.width / 2 - this.containerWidth / 2
-    const clipY = this.canvas.height / 2 - this.containerHeight / 2
-    const boundWidth = clipX + this.containerWidth - 5
-    const boundHeight = clipY + this.containerHeight - 5
-    const boundingBox = this.getBoundingBox();
-
-    objects.forEach((particle2, index2) => {
-      if (index !== index2) {
-        // Apply attraction
-        this.applyAttraction(particle2, this.attractionForce)
-        // Check collision
-        const collition = this.checkCollition(particle2);
-        if (collition.isColliding === true) {
-          // console.log('collition')
-          this.collideWith(particle2, collition.direction)
-        }
-      }
-    })
-
-    if (boundingBox.left <= clipX || boundingBox.right >= boundWidth) {
-      this.velocityX *= -1
-      // Adjust position to be within bounds after reversing velocity
-      if (boundingBox.left <= clipX) {
-        nextX = clipX + boundingBox.width
-
-        if (this.radius > 0) {
-          nextX = clipX + this.radius
-        } else {
-          nextX = clipX + 3
-        }
-
-      } else if (boundingBox.right >= boundWidth) {
-        if (this.radius > 0) {
-          nextX = boundWidth - this.radius
-        } else {
-          nextX = boundWidth - boundingBox.width
-        }
-      }
-    }
-
-    // Check Y bounds
-    if (boundingBox.top < clipY || boundingBox.bottom > boundHeight) {
-      this.velocityY *= -1
-      // Adjust position to be within bounds after reversing velocity
-      if (boundingBox.top < clipY) {
-        
-        if (this.radius > 0) {
-          nextY = clipY + this.radius
-        } else {
-          nextY = clipY + 3
-        }
-
-      } else if (boundingBox.bottom > boundHeight) {
-        // this.y = boundHeight - halfSizeY * 2
-        if (this.radius > 0) {
-          nextY = boundHeight - this.radius / 2
-        } else {
-          nextY = boundHeight - boundingBox.height
-        }
-      }
-    }
-
-    this.x = nextX
-    this.y = nextY
+    this.checkBouds()
 
     // Apply friction to gradually slow down the object
+    this.x += this.velocityX
+    this.y += this.velocityY
+
     this.velocityX *= this.friction
     this.velocityY *= this.friction
 
     // If the velocity is very small, stop the object
     if (Math.abs(this.velocityX) < 0.01) this.velocityX = 0
     if (Math.abs(this.velocityY) < 0.01) this.velocityY = 0
+  }
+
+  checkBouds() {
+    if (this.velocityX == 0 && this.velocityY == 0) return
+
+    // let nextX = this.x + this.velocityX
+    // let nextY = this.y + this.velocityY
+    // Check X bounds
+    const canvasHeight = parseInt(this.game.canvas.height)
+    const canvasWidth =  parseInt(this.game.canvas.width)
+    const containerHeight = parseInt(this.game.config.containerHeight)
+    const containerWidth = parseInt(this.game.config.containerWidth)
+
+    const clipX = (canvasWidth / 2) - (containerWidth / 2)
+    const clipY = (canvasHeight / 2) - (containerHeight / 2)
+
+    const boundWidth = clipX + containerWidth
+    const boundHeight = clipY + containerHeight
+    
+    const boundingBox = this.getBoundingBox();
+
+    // Check bounds
+    if (boundingBox.left <= clipX || boundingBox.right >= boundWidth) {
+      
+
+      if (boundingBox.left < clipX) {
+        // this.x = clipX
+      } else if (boundingBox.right > boundWidth) {
+        // this.x = boundWidth - boundingBox.width
+      }
+      this.velocityX *= -1
+    }
+
+    if (boundingBox.top <= clipY || boundingBox.bottom >= boundHeight) {
+      // Adjust position to be within bounds after reversing velocity
+      
+      if (boundingBox.top <= clipY) {
+        this.y = clipY +  (this.isCircle ? this.radius : this.height) + 2;
+        return
+      } else if (boundingBox.bottom >= boundHeight) {
+        // this.y = boundHeight - (this.isCircle ? this.radius : this.height) + 2;
+      }
+      this.velocityY *= -1
+    }
+
+    // this.x = nextX
+    // this.y = nextY
   }
 
   applyForce(forceMagnitude, direction, type) {
@@ -138,53 +127,87 @@ export default class Body {
   }
 
   applyAttraction(obj2) {
-    if (obj2.attractionForce === 0) {
+    if (this.attractionForce === 0) {
       return
     }
-    const dx = obj2.x - this.x
-    const dy = obj2.y - this.y
+    const dx = this.x - obj2.x 
+    const dy = this.y - obj2.y
     const distance = Math.sqrt(dx * dx + dy * dy)
     if (distance > 0) {
-      const forceMagnitude = obj2.attractionForce / distance
+      const forceMagnitude = this.attractionForce / distance
       const forceX = (dx / distance) * forceMagnitude
       const forceY = (dy / distance) * forceMagnitude
-      this.applyForce(0.1, { x: forceX, y: forceY }, 'attraction')
+      obj2.applyForce(0.1, { x: forceX, y: forceY }, 'attraction')
     }
   }
 
   applyGravity() {
-    const clipY = this.canvas.height / 2 - this.containerHeight / 2
-    const dy = clipY + this.containerHeight - this.y
+    const canvasHeight = parseInt(this.game.canvas.height)
+    const canvasWidth =  parseInt(this.game.canvas.width)
+    const containerHeight = parseInt(this.game.config.containerHeight)
+    const containerWidth = parseInt(this.game.config.containerWidth)
+
+    const clipX = (canvasWidth / 2) - (containerWidth / 2)
+    const clipY = (canvasHeight / 2) - (containerHeight / 2)
+
+    const boundWidth = clipX + containerWidth
+    const boundHeight = clipY + containerHeight
+    
+    const boundingBox = this.getBoundingBox();
+
+    const dy = clipY + containerHeight - this.y
     if (dy > 0) {
-      const forceY = dy * this.gravityForce
-      this.applyForce(1, { x: 0, y: forceY }, 'gravity')
+      this.applyForce(this.gravityForce, { x: 0, y: 1 }, 'gravity')
     }
   }
 
   setConfig(props) {
+    
     if (props.position) {
-      this.x = props.position.x
-      this.y = props.position.y
+      this.x = parseFloat(props.position.x)
+      this.y = parseFloat(props.position.y)
+    } else {
+      if (props.x) {
+        this.x = parseFloat(props.x)
+      }
+  
+      if (props.y) {
+        this.y = parseFloat(props.y)
+      }
     }
-
     if (props.radius && props.radius > 0) {
-      this.radius = props.radius
-      this.height = props.radius / 2
-      this.width = props.radius / 2
+      this.radius = parseInt(props.radius)
+      this.height = parseInt(props.radius)
+      this.width = parseInt(props.radius)
       this.isCircle = true
     }
-    this.width = props.width
-    this.height = props.height
-    this.containerWidth = props.containerWidth
-    this.containerHeight = props.containerHeight
-    this.friction = props.particleFriction
-    this.mass = props.particleMass
-    this.collitionForce = props.collitionForce
-    this.attractionForce = props.attractionForce
-    this.gravityForce = props.gravityForce           
+    if (props.width) {
+      this.width = parseInt(props.width)
+    }
+    if (props.height) {
+      this.height = parseInt(props.height)
+    }
+    if (props.friction) {
+      this.friction = parseFloat(props.friction)
+    }
+    if (props.mass) {
+      this.mass = parseFloat(props.mass)
+    }
+    if (props.collitionForce) {
+      this.collitionForce = parseFloat(props.collitionForce)
+    }
+    if (props.attractionForce) {
+      this.attractionForce = parseFloat(props.attractionForce)
+    }
+    if (props.gravityForce) {
+      this.gravityForce = parseFloat(props.gravityForce)
+    }
     if (props.color) {
       this.baseColor = props.color
       this.color = props.color
+    }
+    if (!this.id) {
+      this.id = Math.floor(Math.random() * 10000)
     }
   }
 
@@ -193,12 +216,12 @@ export default class Body {
     let width = this.width
     let height = this.height
 
-    if (this.radius > 0) {
-      width = this.radius + this.radius / 2
-      height = this.radius + this.radius / 2
-      left = this.x - width / 2;
+    if (this.isCircle ) {
+      width = this.radius * 2
+      height = this.radius * 2
+      left = this.x - this.radius;
       right = left + width;
-      top = this.y - height / 2;
+      top = this.y - this.radius;
       bottom = top + height;
     } else {
       left = this.x;
@@ -212,12 +235,13 @@ export default class Body {
       right: Math.floor(right),
       top: Math.floor(top),
       bottom: Math.floor(bottom),
-      width, height
+      width: Math.floor(width),
+      height: Math.floor(height)
     };
   }
 
   checkCollition(target) {
-    const { direction, distance } = this.getDirectionTo(target);
+    const { direction } = this.getDirectionTo(target);
     // if (distance <= 0 || !direction.x || !direction.y) {
     //   return { isColliding: false, direction };
     // }
@@ -266,19 +290,14 @@ export default class Body {
     let dy = 0
     let distance = 0
 
-    if (this.radius !== undefined && target.radius !== undefined) {
+    if (this.isCircle && target.isCircle) {
       // Circle vs Circle
       dx = this.x - target.x
       dy = this.y - target.y
       distance = Math.sqrt(dx * dx + dy * dy)
       const combinedRadius = this.radius + target.radius
       isColliding = distance <= combinedRadius
-    } else if (
-      this.width !== undefined &&
-      this.height !== undefined &&
-      target.width !== undefined &&
-      target.height !== undefined
-    ) {
+    } else if (!this.isCircle && !target.isCircle) {
       // Rectangle vs Rectangle
       const halfWidth1 = this.width / 2
       const halfHeight1 = this.height / 2
@@ -295,11 +314,8 @@ export default class Body {
       const combinedHalfWidth = halfWidth1 + halfWidth2
       const combinedHalfHeight = halfHeight1 + halfHeight2
       isColliding = dx <= combinedHalfWidth && dy <= combinedHalfHeight
-    } else if (
-      this.radius !== undefined &&
-      target.width !== undefined &&
-      target.height !== undefined
-    ) {
+
+    } else if (this.isCircle && !target.isCircle) {
       // Circle vs Rectangle
       const halfWidth = target.width / 2
       const halfHeight = target.height / 2
@@ -318,11 +334,7 @@ export default class Body {
         isColliding = cornerDistanceSq <= this.radius ** 2
       }
       distance = Math.sqrt((this.x - centerX) ** 2 + (this.y - centerY) ** 2)
-    } else if (
-      this.width !== undefined &&
-      this.height !== undefined &&
-      target.radius !== undefined
-    ) {
+    } else if (!this.isCircle && target.isCircle) {
       // Rectangle vs Circle (reversed)
       const halfWidth = this.width / 2
       const halfHeight = this.height / 2
@@ -349,8 +361,8 @@ export default class Body {
       distance = 1 // Avoid division by zero for the direction calculation
     }
 
-    const direction = isColliding ? { x: dx / distance, y: dy / distance } : null
-    
+    // const direction = isColliding ? { x: dx / distance, y: dy / distance } : null
+    const { direction } = this.getDirectionTo(target);
     return {
       isColliding,
       direction
@@ -370,7 +382,7 @@ export default class Body {
       }
       // target.applyForce(force, direction, 'collition¿)
       if (!this.selected) {
-        this.applyForce(this.collitionForce, direction, 'collition')
+        this.applyForce(force, direction, 'collition')
       } else {
         target.color = target.collitionColor
         setTimeout(() => {

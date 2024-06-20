@@ -1,5 +1,5 @@
 <script lang="ts">
-import { GameControl, INITIAL_CONFIG } from './utils/GameControl.js'
+import { GameControl } from './utils/GameControl.js'
 import ControlPanel from './components/ControlPanel.vue'
 
 export default {
@@ -7,26 +7,33 @@ export default {
     ControlPanel
   },
   data() {
+    const gameControl:GameControl|undefined = undefined;
     return {
       containerSize: 500,
-      gameControls: new GameControl('game-canvas'),
-      selectedTool: ''
+      gameControls: gameControl,
+      selectedTool: '',
+      selectedObject: null
     }
   },
   mounted() {
     document.querySelector('html')?.setAttribute('data-bs-theme', 'dark')
-    this.resizeContainer(600)
+    this.gameControls = new GameControl('game-canvas');
+    this.gameControls.start();
     this.addListeners()
   },
   methods: {
-    resizeContainer(diff:number) {
-      this.containerSize = window.innerWidth - diff
+    resizeContainer() {
+      const lsWidth = document.getElementById('particle-controls')?.clientWidth
+      this.containerSize = window.innerWidth - (lsWidth || 0)
+      if (this.gameControls) {
+        this.gameControls.setCanvasSize()
+      };
     },
     addListeners() {
       const self = this
 
       window.addEventListener('resize', () => {
-        self.gameControls.setCanvasSize();
+        self.resizeContainer(this.containerSize);
         // self.config = this.gameControls.config
       })
 
@@ -38,7 +45,10 @@ export default {
         }
         event.preventDefault()
         if (event.button === 0) {
-          self.gameControls.handleClick(event)
+          const selected = self.gameControls.handleClick(event)
+          if (selected) {
+            this.selectedObject = {...selected}
+          }
           document.addEventListener('mousemove', mouseMove)
         }
         return false;
@@ -84,6 +94,7 @@ export default {
       @resize="resizeContainer" 
       :gameControls="gameControls" 
       :selectedTool="selectedTool"
+      :selectedObject="selectedObject"
       @changeTool="changeTool"/>
   </div>
 </template>
