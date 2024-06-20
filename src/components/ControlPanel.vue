@@ -96,8 +96,8 @@ export default {
         ...this.selectedObject,
         ...this.particle
       })
-      this.gameControls.saveConfig(this.config)
-      this.gameControls.setCanvasSize()
+      // this.gameControls.saveConfig(this.config)
+      // this.gameControls.setCanvasSize()
     },
     changeTab(tab:string) {
       this.currentTab = tab
@@ -453,7 +453,7 @@ export default {
   left: 0;
   top: 0;
   height: 100%;
-  width: 2px;
+  width: 4px;
   background-color: #ffe600;;
   cursor: e-resize;
 }

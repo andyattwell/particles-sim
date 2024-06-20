@@ -91,25 +91,24 @@ export default class Body {
     // Check bounds
     if (boundingBox.left <= clipX || boundingBox.right >= boundWidth) {
       
+      this.velocityX *= -1
 
       if (boundingBox.left < clipX) {
-        // this.x = clipX
+        this.x = clipX + (this.isCircle ? this.radius : this.width)
       } else if (boundingBox.right > boundWidth) {
-        // this.x = boundWidth - boundingBox.width
+        this.x = boundWidth - (this.isCircle ? this.radius : this.width) 
       }
-      this.velocityX *= -1
     }
 
     if (boundingBox.top <= clipY || boundingBox.bottom >= boundHeight) {
       // Adjust position to be within bounds after reversing velocity
-      
-      if (boundingBox.top <= clipY) {
-        this.y = clipY +  (this.isCircle ? this.radius : this.height) + 2;
-        return
-      } else if (boundingBox.bottom >= boundHeight) {
-        // this.y = boundHeight - (this.isCircle ? this.radius : this.height) + 2;
-      }
       this.velocityY *= -1
+      if (boundingBox.top < clipY) {
+        this.y = clipY +  (this.isCircle ? this.radius : this.height) + 2;
+      } else if (boundingBox.bottom > boundHeight) {
+        this.y = boundHeight - (this.isCircle ? this.radius : this.height) + 2;
+      }
+      
     }
 
     // this.x = nextX
