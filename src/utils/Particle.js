@@ -20,9 +20,7 @@ export default class Particle extends Body {
     this.ctx.fillStyle = this.color
     this.ctx.fill()
     this.ctx.closePath()
-    
-    super.draw()
-
+    // super.draw()
   }
 
   select() {

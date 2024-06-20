@@ -5,7 +5,6 @@ export default class Game {
   canvas
   ctx
   particles = []
-  boxes = []
   config
 
   constructor(canvas, config) {
@@ -15,8 +14,8 @@ export default class Game {
   }
 
   start() {
-    this.createParticles(1, 'particle')
-    this.createParticles(1, 'box')
+    this.createParticles(10, 'particle')
+    this.createParticles(5, 'box')
     this.update()
   }
 
@@ -40,10 +39,6 @@ export default class Game {
     this.particles.forEach((particle, index1) => {
       particle.draw()
       particle.update(index1, self.particles)
-    })
-
-    this.boxes.forEach(box => {
-      box.draw()
     })
     
     // Restore the canvas state to remove clipping for future drawings

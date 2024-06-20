@@ -6,8 +6,8 @@ export default class Box extends Body {
     height = 20
     friction = 0.95
     mass = 1
-    collitionForce = 0.5
-    attractionForce = 0.5
+    collitionForce = 5
+    attractionForce = 50
     gravityForce = 0.05
     baseColor = "#696969"
     color = "#696969"

@@ -33,7 +33,7 @@ export default {
       const self = this
 
       window.addEventListener('resize', () => {
-        self.resizeContainer(this.containerSize);
+        self.resizeContainer();
         // self.config = this.gameControls.config
       })
 

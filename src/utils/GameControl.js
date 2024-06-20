@@ -106,7 +106,7 @@ export class GameControl {
 
   handleClick(event) {
     let inBounds = this.checkWindowBouds(event.clientX, event.clientY)
-    if (!inBounds) {
+    if (!inBounds.inbound) {
       return
     }
 
@@ -148,23 +148,52 @@ export class GameControl {
   }
 
   handleMouseMove(event) {
-    let inBounds = this.checkWindowBouds(event.clientX, event.clientY)
-    if (!inBounds) {
-      return
-    }
 
     if (this.selectedTool) {
       return;
     }
 
     if (this.selectedParticle) {
-      this.selectedParticle.move(inBounds.x, inBounds.y)
+      this.moveParticle(this.selectedParticle, event.clientX, event.clientY)
     }
 
     if (this.mouse.isMouseDown) {
       this.mouse.lastX = this.mouse.startX;
       this.mouse.lastY = this.mouse.startY;
     }
+  }
+
+  moveParticle(particle, mouseX, mouseY) {
+    
+    let nextX = mouseX
+    let nextY = mouseY
+
+    const canvasHeight = parseInt(this.game.canvas.height)
+    const canvasWidth =  parseInt(this.game.canvas.width)
+    const containerHeight = parseInt(this.game.config.containerHeight)
+    const containerWidth = parseInt(this.game.config.containerWidth)
+
+    const clipX = (canvasWidth / 2) - (containerWidth / 2)
+    const clipY = (canvasHeight / 2) - (containerHeight / 2)
+
+    const boundWidth = clipX + containerWidth
+    const boundHeight = clipY + containerHeight
+    const boundingBox = particle.getBoundingBox(nextX, nextY);
+
+    if (boundingBox.left < clipX) {
+      nextX = clipX + (particle.isCircle ? particle.radius : particle.width)
+    } else if (boundingBox.right > boundWidth) {
+      nextX = boundWidth - (particle.isCircle ? particle.radius : particle.width) 
+    }
+
+    if (boundingBox.top <= clipY) {
+      nextY = clipY +  (particle.isCircle ? particle.radius : particle.height) + 2;
+    } else if (boundingBox.bottom > boundHeight) {
+      nextY = boundHeight - (particle.isCircle ? particle.radius : particle.height) + 2;
+    }
+
+    particle.x = nextX
+    particle.y = nextY
   }
 
   handleTool(tool, inBounds) {
@@ -181,9 +210,21 @@ export class GameControl {
     }
   }
 
-  checkWindowBouds(pageX, pageY) {
+  checkWindowBouds(pageX, pageY, particle) {
     const windowHeight = this.canvas.height
     const windowWidth = this.canvas.width
+
+    let boundingBox = {
+      left: pageX,
+      right: pageX,
+      top: pageY,
+      bottom: pageY
+    }
+
+    if (particle) {
+      console.log({particle})
+      boundingBox = particle.getBoundingBox()
+    }
 
     let canvasLeft = windowWidth / 2 - parseInt(this.config.containerWidth) / 2
     let canvasRight = canvasLeft + parseInt(this.config.containerWidth)
@@ -191,14 +232,20 @@ export class GameControl {
     let canvasBottom = canvasTop + parseInt(this.config.containerHeight)
     const canvasPosition = this.canvas.getBoundingClientRect()
 
-    if (pageX < canvasLeft || pageX > canvasRight || pageY < canvasTop || pageY > canvasBottom) {
-      return false
+    let inbound = true
+    if (
+      boundingBox.left < canvasLeft || 
+      boundingBox.right > canvasRight || 
+      boundingBox.top < canvasTop || 
+      boundingBox.bottom > canvasBottom
+    ) {
+      inbound = false
     }
 
-    return {
-      x: pageX - canvasPosition.left,
-      y: pageY - canvasPosition.top
-    }
+    let x = pageX - canvasPosition.left;
+    let y = pageY - canvasPosition.top;
+
+    return { inbound, x, y }
   }
   
   deleteConfig(profileName) {

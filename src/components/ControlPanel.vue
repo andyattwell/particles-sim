@@ -42,12 +42,6 @@ export default {
   mounted() {
     const self = this
     self.setPanelSize();
-    
-    
-    // setTimeout(() => {
-    //   // self.gameControls.start();
-    // }, 500)
-
   },
   computed: {
     selectedProfile() {
@@ -96,8 +90,6 @@ export default {
         ...this.selectedObject,
         ...this.particle
       })
-      // this.gameControls.saveConfig(this.config)
-      // this.gameControls.setCanvasSize()
     },
     changeTab(tab:string) {
       this.currentTab = tab
