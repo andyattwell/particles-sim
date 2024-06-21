@@ -14,7 +14,7 @@ type Particle = {
 }
 
 export default {
-  props: ['particleData', 'gameControls'],
+  props: ['particleData'],
   data() {
     const particle: Particle = {};
     return {

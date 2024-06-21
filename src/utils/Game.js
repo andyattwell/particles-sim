@@ -1,20 +1,24 @@
 import Particle from './Particle'
 import Box from './Box'
+import { INITIAL_GAME_CONFIG } from './Settings.js'
 
 export default class Game {
   canvas
   ctx
   particles = []
-  config
-  requestId = null;
+  config = INITIAL_GAME_CONFIG
+  requestId = null
 
-  constructor(canvas, config) {
-    this.config = config
-    this.canvas = canvas
-    this.ctx = canvas.getContext('2d')
+  constructor(canvasId, config) {
+    this.canvasId = canvasId
+    if (config) {
+      this.config = config
+    }
+    this.setCanvas()
   }
 
   start() {
+    // this.setCanvasSize()
     this.particles = []
     this.createParticles(1, 'particle')
     this.createParticles(1, 'box')
@@ -35,7 +39,6 @@ export default class Game {
       this.playing = false;
     }
   }
-
 
   pause () {
     if (!this.requestId) {
@@ -152,6 +155,145 @@ export default class Game {
       particle.containerWidth = parseInt(this.config.containerWidth)
       particle.containerHeight = parseInt(this.config.containerHeight)
     })
+  }
+
+  moveParticle(particle, mouseX, mouseY) {
+    
+    let nextX = mouseX
+    let nextY = mouseY
+
+    const canvasHeight = parseInt(this.canvas.height)
+    const canvasWidth =  parseInt(this.canvas.width)
+    const containerHeight = parseInt(this.config.containerHeight)
+    const containerWidth = parseInt(this.config.containerWidth)
+
+    const clipX = (canvasWidth / 2) - (containerWidth / 2)
+    const clipY = (canvasHeight / 2) - (containerHeight / 2)
+
+    const boundWidth = clipX + containerWidth
+    const boundHeight = clipY + containerHeight
+    const boundingBox = particle.getBoundingBox(nextX, nextY);
+
+    if (!particle.isCircle) { 
+      nextX = boundingBox.left
+      nextY = boundingBox.top
+    }
+
+    if (boundingBox.left < clipX) {
+      nextX = clipX + (particle.isCircle ? particle.radius : 0)
+    } else if (boundingBox.right > boundWidth) {
+      nextX = boundWidth - (particle.isCircle ? particle.radius : particle.width) 
+    }
+
+    if (boundingBox.top <= clipY) {
+      nextY = clipY +  (particle.isCircle ? particle.radius : 0) + 2;
+    } else if (boundingBox.bottom > boundHeight) {
+      nextY = boundHeight - (particle.isCircle ? particle.radius : particle.height) + 2;
+    }
+
+    particle.x = nextX
+    particle.y = nextY
+  }
+
+  handleTool(tool, inBounds) {
+    this.addObject(tool, {
+      position: inBounds
+    });
+  }
+
+  setParticleProps(newParticle) {
+    const particle = this.particles.find((p) => newParticle.id === p.id)
+    if(!particle) return;
+    particle.setConfig(newParticle);
+  }
+
+  checkWindowBouds(pageX, pageY, particle) {
+    const windowHeight = this.canvas.height
+    const windowWidth = this.canvas.width
+
+    let boundingBox = {
+      left: pageX,
+      right: pageX,
+      top: pageY,
+      bottom: pageY
+    }
+
+    if (particle) {
+      boundingBox = particle.getBoundingBox()
+    }
+
+    let canvasLeft = windowWidth / 2 - parseInt(this.config.containerWidth) / 2
+    let canvasRight = canvasLeft + parseInt(this.config.containerWidth)
+    let canvasTop = windowHeight / 2 - parseInt(this.config.containerHeight) / 2
+    let canvasBottom = canvasTop + parseInt(this.config.containerHeight)
+    const canvasPosition = this.canvas.getBoundingClientRect()
+
+    let inbound = true
+    if (
+      boundingBox.left < canvasLeft || 
+      boundingBox.right > canvasRight || 
+      boundingBox.top < canvasTop || 
+      boundingBox.bottom > canvasBottom
+    ) {
+      inbound = false
+    }
+
+    let x = pageX - canvasPosition.left;
+    let y = pageY - canvasPosition.top;
+
+    return { inbound, x, y }
+  }
+
+  setCanvas() {
+    this.canvas = document.getElementById(this.canvasId)
+    this.ctx = this.canvas?.getContext('2d')
+  }
+
+  setCanvasSize(containerWidth) {
+    this.setCanvas();
+    if (!this.canvas) {
+      return;
+    }
+    const container = document.getElementById('canvas-container');
+
+    let width = parseInt(container.clientWidth);
+    let height = parseInt(container.clientHeight);
+
+    if (containerWidth) {
+      width = parseInt(containerWidth);
+    }
+    
+    this.canvas.setAttribute('width', width)
+    this.canvas.setAttribute('height', height)
+
+    this.config.canvasMaxWidth = width;
+    this.config.canvasMaxHeight = height;
+
+    if (this.config.containerWidth > width) {
+      this.config.containerWidth = parseInt(width);
+    }
+    if (this.config.containerHeight > height) {
+      this.config.containerHeight = parseInt(height);
+    }
+
+    this.applyConfig(this.config);
+  }
+  
+  applyConfig(config, reload) {
+    this.config = config
+    this.selectedProfile = config.profileName
+
+    if (reload) {
+      this.reset(this.config)
+    }
+  }
+
+  determineDirection(x1, y1, x2, y2) {
+    const deltaX = x2 - x1;
+    const deltaY = y2 - y1;
+    return {
+      x: Math.tanh(deltaX), y: Math.tanh(deltaY)
+    }
   }
 
 }

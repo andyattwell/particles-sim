@@ -1,6 +1,8 @@
 <script lang="ts">
 import ObjectsMenu from './ObjectsMenu.vue'
 import ParticleForm from './ParticleForm.vue'
+import { INITIAL_GAME_CONFIG } from '../utils/Settings.js'
+
 type Config = {
   particles?: any
   profileName?: string
@@ -24,15 +26,17 @@ type Particle = {
 }
 
 export default {
-  props: ['gameControls', 'selectedTool', 'selectedObject'],
+  props: ['selectedTool', 'selectedObject', 'settings'],
   components: {
     ObjectsMenu, ParticleForm
   },
   data() {
     const particle: Particle = {};
-    const config: Config = {}
+    // const config: Config = INITIAL_GAME_CONFIG
     return {
-      config: config,
+      selectedProfile: 'Default',
+      profiles: [],
+      config: INITIAL_GAME_CONFIG,
       panelWidth: 600,
       isDragging: false,
       startX: 0,
@@ -44,19 +48,6 @@ export default {
     const self = this
     self.setPanelSize();
   },
-  computed: {
-    selectedProfile() {
-      return this.gameControls?.selectedProfile || 'Default'
-    },
-    // config() {
-    //   return this.gameControls?.profiles.find((profile:Config) => {
-    //     return profile.profileName === this.selectedProfile
-    //   })
-    // },
-    profiles() {
-      return this.gameControls?.profiles || [];
-    }
-  },
   watch: {
     selectedObject: {
       handler(newVal) {
@@ -64,30 +55,18 @@ export default {
       },
       deep: true
     },
-    gameControls: {
-      handler(gameControls) {
-        if (!gameControls) return;
-        this.config = gameControls.config
+    settings: {
+      handler(settings) {
+        this.config = settings
       }
     },
-    config: {
-      handler(newVal) {
-        if (!newVal.selectedProfile) {
-          if (newVal !== this.config) {
-            this.gameControls.saveConfig({ ...this.config, ...newVal })
-          }
-        }
-      },
-      deep: true
-    }
   },
   methods: {
     updateConfig() {
-      this.gameControls.saveConfig(this.config)
-      this.gameControls.setCanvasSize()
+      this.$emit('update', this.config)
     },
     updateParticle(particle:Particle) {
-      this.gameControls.setParticleProps(particle)
+      this.$emit('update-particle', particle)
     },
     changeTab(tab:string) {
       this.currentTab = tab
@@ -108,10 +87,9 @@ export default {
       if (this.selectedProfile === 'New') {
         return this.addProfile()
       }
-      this.gameControls.changeProfile(this.selectedProfile)
-      // this.selectedProfile = this.selectedProfile
-      // this.profiles = this.gameControls.profiles;
-      // this.config = this.gameControls.config;
+      const profile = this.profiles.find((p) => p.profileName == profileName);
+      this.selectedProfile = profile.profileName
+      this.config = profile;
     },
     addProfile() {
       const regex = /^New profile\s*\d*$/i;
@@ -123,17 +101,16 @@ export default {
         ...this.config,
         profileName: 'New profile' + sameCount
       }
-      // this.profiles.push(newConfig)
-      this.gameControls.saveConfig(newConfig)
-      // this.config = this.gameControls.config
-      // this.selectedProfile = this.gameControls.selectedProfile
-      // this.profiles = this.gameControls.profiles
+      this.profiles.push(newConfig)
+      this.config = newConfig
+      this.selectedProfile = newConfig.profileName
+      this.$emit('update', newConfig)
+
     },
     deleteConfig() {
-      this.gameControls.deleteConfig(this.selectedProfile)
-      // this.profiles = this.gameControls.profiles
-      // this.config = this.gameControls.config
-      // this.selectedProfile = this.gameControls.selectedProfile
+      this.profiles = this.profiles.filter((p) => p.profileName !== profileName)
+      this.config = this.profiles[this.profiles.length - 1];
+      this.selectedProfile = this.config.profileName
     },
     startDrag (event:any) {
       this.isDragging = true;
@@ -146,11 +123,9 @@ export default {
       if (!this.isDragging) return;
       const next = this.panelWidth + this.startX - event.clientX;
       if (next >= 300 && next <= 800) {
-        this.$emit('resize', next)
-        this.gameControls.setCanvasSize();
-        this.config = this.gameControls.config
-        this.panelWidth = next;
+        this.panelWidth = next
         this.startX = event.clientX
+        this.$emit('resize', next)
       }
     },
     stopDrag() {
@@ -290,7 +265,6 @@ export default {
        <div class="card-body">
           <ParticleForm 
             :particleData="particle" 
-            :gameControls="gameControls"
             @update="updateParticle"
           ></ParticleForm>
         </div>
