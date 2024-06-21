@@ -58,6 +58,10 @@ export class GameControl {
     }, 100)
   }
 
+  pause() {
+    return this.game.pause();
+  }
+
   setCanvas() {
     this.canvas = document.getElementById(this.canvasId)
   }

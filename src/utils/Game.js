@@ -6,6 +6,7 @@ export default class Game {
   ctx
   particles = []
   config
+  requestId = null;
 
   constructor(canvas, config) {
     this.config = config
@@ -14,9 +15,35 @@ export default class Game {
   }
 
   start() {
+    this.particles = []
     this.createParticles(1, 'particle')
     this.createParticles(1, 'box')
-    this.update()
+    this.play()
+  }
+
+  play() {
+    if (!this.requestId) {
+      this.playing = true;
+      this.update()
+    }
+  }
+
+  stop() {
+    if (this.requestId) {
+      cancelAnimationFrame(this.requestId);
+      this.requestId = null
+      this.playing = false;
+    }
+  }
+
+
+  pause () {
+    if (!this.requestId) {
+      this.play()
+    } else {
+      this.stop()
+    }
+    return this.playing
   }
 
   reset(config) {
@@ -44,9 +71,11 @@ export default class Game {
     // Restore the canvas state to remove clipping for future drawings
     this.ctx.restore();
 
-    requestAnimationFrame(() => {
-      self.update()
-    })
+    if (this.playing) {
+      this.requestId = requestAnimationFrame(() => {
+        self.update()
+      })
+    }
   }
 
   drawClippingMask() {
