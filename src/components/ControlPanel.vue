@@ -2,10 +2,9 @@
 import ObjectsMenu from './ObjectsMenu.vue'
 import ParticleForm from './ParticleForm.vue'
 import DragComponent from './DragComponent.vue'
+import Settings from '@/utils/Settings'
+import type { Config, ParticleProps } from '../types'
 
-import type { Config } from '../types'
-import type Box from '@/utils/Box'
-import type Circle from '@/utils/Circle'
 
 export default {
   props: ['selectedTool', 'selectedObject', 'settings'],
@@ -13,9 +12,11 @@ export default {
     ObjectsMenu, ParticleForm, DragComponent
   },
   data() {
-    let particle: Circle|Box|undefined
+    let particle: ParticleProps|undefined
     let config: Config|undefined
     const profiles: Array<Config> = []
+    const settingsController = new Settings()
+
     return {
       selectedProfile: 'Default',
       profiles: profiles,
@@ -24,7 +25,8 @@ export default {
       isDragging: false,
       startX: 0,
       currentTab: 'profile',
-      particle: particle
+      particle: particle,
+      settingsController
     }
   },
   mounted() {
@@ -37,7 +39,6 @@ export default {
       handler(newVal) {
         this.particle = newVal
       },
-      deep: true
     },
     settings: {
       handler(settings) {
@@ -57,14 +58,17 @@ export default {
         containerHeight
       })
     },
-    updateParticle(particle:Circle|Box) {
+    updateParticle(particle:ParticleProps) {
       this.$emit('update-particle', particle)
+    },
+    saveParticle(particle:ParticleProps) {
+      this.settingsController.saveParticle(particle)
     },
     changeTab(tab:string) {
       this.currentTab = tab
     },
-    selectTool(tool:string) {
-      this.$emit('changeTool', tool)
+    selectTool(particle:ParticleProps) {
+      this.$emit('changeTool', particle)
     },
     setPanelSize() {
       // this.panelWidth = window.innerWidth - this.containerSize;
@@ -233,18 +237,19 @@ export default {
       </div>
 
       <div class="card-body" v-if="currentTab === 'objects'">
-        <ObjectsMenu @select="selectTool" :selectedTool="selectedTool"/>
+        <ObjectsMenu @select="selectTool" :selectedTool="selectedTool" :settings="settingsController"/>
       </div>
 
     </div>
 
     <!--  Particle detail -->
-    <div class="card p-2 pt-0" v-if="particle && particle.id">
+    <div class="card p-2 mt-3" v-if="particle">
       <h1 class="card-title">Particles settings</h1>
        <div class="card-body">
           <ParticleForm 
             :particleData="particle" 
             @update="updateParticle"
+            @save="saveParticle"
           ></ParticleForm>
         </div>
     </div> 

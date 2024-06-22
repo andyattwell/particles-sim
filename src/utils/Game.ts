@@ -1,13 +1,12 @@
-import Circle from './Circle'
-import Box from './Box'
 import { INITIAL_GAME_CONFIG } from './Settings'
 import type { Config, ParticleType, ParticleProps } from '../types'
+import Particle from './Particle'
 
 export default class Game {
   canvasId: string
   canvas: any = null
   ctx:any
-  particles:Array<Circle|Box> = []
+  particles:Array<Particle> = []
   config:Config = INITIAL_GAME_CONFIG
   requestId:number|null = null
   playing = false
@@ -120,12 +119,7 @@ export default class Game {
   }
 
   addObject (props:ParticleProps) {
-    let obj;
-    if (props.type === 'circle') {
-      obj = new Circle(this, props);
-    } else if (props.type === 'box') {
-      obj = new Box(this, props);
-    }
+    const obj = new Particle(this, props);
     if (obj) {
       this.particles.push(obj)
     }
@@ -174,7 +168,7 @@ export default class Game {
     })
   }
 
-  moveParticle(particle:Circle|Box, mouseX:number, mouseY:number) {
+  moveParticle(particle:Particle, mouseX:number, mouseY:number) {
     
     if (!this.canvas) return;
 
@@ -214,17 +208,21 @@ export default class Game {
     particle.y = nextY
   }
 
-  handleTool(tool: string, inBounds:any) {
+  handleTool(tool: ParticleProps, inBounds:any) {
     this.addObject({
-      type: tool,
+      ...tool,
       position: inBounds
     });
   }
 
   setParticleProps(newParticle:ParticleProps) {
-    const particle = this.particles.find((p) => newParticle.id === p.id)
-    if(!particle) return;
-    particle.setConfig(newParticle);
+    this.particles.map((p) => {
+      if ((p.name && newParticle.name === p.name) || p.id === newParticle.id) {
+        p.setConfig(newParticle)
+      }
+      return p
+    })
+    
   }
 
   checkWindowBouds(pageX:number, pageY:number, particle:ParticleType|null = null) {

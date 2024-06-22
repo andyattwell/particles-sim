@@ -1,3 +1,6 @@
+import type { Config, ParticleProps } from "@/types"
+import type Particle from "./Particle"
+
 export const INITIAL_GAME_CONFIG = {
   profileName: 'Default',
   containerWidth: 300,
@@ -9,31 +12,30 @@ export const INITIAL_GAME_CONFIG = {
 
 export default class Settings {
   profiles = [INITIAL_GAME_CONFIG]
-  selectedProfile
+  selectedProfile: Config|undefined = INITIAL_GAME_CONFIG
+  particleTypes: Array<Particle> = []
 
-  deleteProfile(profileName) {
+  deleteProfile(profileName:string) {
     this.profiles = this.profiles.filter((p) => p.profileName !== profileName)
 
-    this.saveToLocalStorage(this.profiles, 'Default')
     if (this.profiles.length == 0) {
       this.profiles = [INITIAL_GAME_CONFIG]
     }
+
+    this.saveToLocalStorage()
+
   }
 
-  getProfile (profileName) {
+  getProfile (profileName:string) {
     return this.profiles.find((p) => p.profileName == profileName)
   }
 
-  changeProfile (profileName) {
-    let config = this.getProfile(profileName)
-    if (!config) {
-      return
-    }
-    this.selectedProfile = config
+  changeProfile (profileName:string) {
+    this.selectedProfile = this.getProfile(profileName)
   }
 
-  updateProfile(profileName, newSettings) {
-    let config = this.getProfile(profileName)
+  updateProfile(profileName:string, newSettings:Config) {
+    const config = this.getProfile(profileName)
     if (!config) {
       return
     }
@@ -49,19 +51,17 @@ export default class Settings {
 
   loadSavedConfig() {
     try {
-      const lsitem = localStorage.getItem('partsim-config');
-      const storeData = JSON.parse(lsitem);
-      if (!storeData?.profiles) return false;
+      const lsitem = localStorage.getItem('partsim-config')
+      if (!lsitem) return
+      const storeData = JSON.parse(lsitem)
+      if (!storeData?.profiles) return
       
       this.profiles = storeData?.profiles
-      if (this.profiles.length && storeData.selectedProfile) {
+
+      if (storeData.selectedProfile) {
         this.changeProfile(storeData.selectedProfile)
-      } else {
-        this.reloadConfig()
       }
-      if (!storeData) {
-        return;
-      }
+      
     } catch (error) {
       console.error('Error loading data:', error)
       return
@@ -70,6 +70,62 @@ export default class Settings {
 
   reloadConfig() {
     localStorage.removeItem('partsim-config')
-    this.game.applyConfig(INITIAL_GAME_CONFIG)
+  }
+
+  saveParticle(particle:ParticleProps) {
+    const particles = this.loadParticles()
+    const particleData = {
+      name: particle.name,
+      type: particle.type,
+      mass: particle.mass,
+      friction: particle.friction,
+      attractionForce: particle.attractionForce,
+      collitionForce: particle.collitionForce,
+      gravityForce: particle.gravityForce,
+      radius: particle.radius,
+      width: particle.width,
+      height: particle.height,
+      containerHeight: particle.containerHeight,
+      containerWidth: particle.containerWidth,
+      baseColor: particle.baseColor,
+      color: particle.color,
+      isCircle: particle.isCircle
+    }
+
+    const exists = particles.find((p:ParticleProps) => p.name === particle.name)
+    if (!exists) {
+      particles.push(particleData)
+    } else {
+      Object.assign(exists, particleData);
+    }
+
+    localStorage.setItem('partsim-particles', JSON.stringify(particles))
+    this.loadParticles()
+  }
+
+  loadParticles() : Array<ParticleProps|any> {
+    let particles = [];
+
+    try {
+      const savedParticles = localStorage.getItem('partsim-particles')
+      if (!savedParticles) return []
+      
+      const storedParticles = JSON.parse(savedParticles)
+      if (storedParticles && Array.isArray(storedParticles)) {
+        particles = storedParticles
+      }
+    } catch (error) {
+      console.log('error', error)
+      return []
+    }
+    this.particleTypes = particles
+    return particles
+
+  }
+
+  deleteParticle(particle:ParticleProps) {
+    const particles = this.loadParticles().filter((p:ParticleProps) => p.name !== particle.name)
+    localStorage.setItem('partsim-particles', JSON.stringify(particles))
+    this.loadParticles()
   }
 }

@@ -2,19 +2,20 @@
   import Game from '../utils/Game'
   import ControlPanel from './ControlPanel.vue'
   import type { Config, ParticleProps } from '../types'
-  import Circle from '../utils/Circle'
-  import Box from '../utils/Box'
+
+import type Particle from '@/utils/Particle'
 
   export default {
     components: {
       ControlPanel
     },
     data() {
-      let selectedObject: Circle|Box|undefined;
+      let selectedObject: Particle|undefined;
+      let selectedTool: ParticleProps|undefined;
       return {
         containerSize: 500,
         game: new Game('game-canvas'),
-        selectedTool: '',
+        selectedTool: selectedTool,
         selectedObject: selectedObject,
         mouse: {
           startX: 0,
@@ -62,7 +63,7 @@
 
         document.addEventListener('mousedown', (event) => {
           if (event.target !== self.game.canvas) {
-            this.selectedTool = ''
+            this.selectedTool = undefined
             return
           }
           event.preventDefault()
@@ -91,7 +92,7 @@
           }
           event.preventDefault();
           // Your custom logic here
-          self.changeTool('')
+          self.changeTool(undefined)
           self.handleRightClick();
           self.selectedObject = undefined;
         })
@@ -105,6 +106,7 @@
       },
       handleClick(event:MouseEvent) {
         let inBounds = this.game.checkWindowBouds(event.clientX, event.clientY)
+
         if (!inBounds?.inbound) {
           return
         }
@@ -115,7 +117,7 @@
         }
 
         const particle = this.game.particles.find(
-          (p:Circle|Box) => p.isClicked(inBounds)
+          (p:Particle) => p.isClicked(inBounds)
         )
 
         if (particle) {
@@ -123,7 +125,7 @@
           this.mouse.startY = inBounds.y
           this.mouse.isMouseDown = true
 
-          if (this.selectedObject && particle.id !== this.selectedObject.id) {
+          if (this.selectedObject && this.selectedObject.deselect) {
             this.selectedObject.deselect();
           }
 
@@ -138,8 +140,9 @@
       handleRightClick() {
         if (this.selectedObject) {
           this.selectedObject.deselect()
-          this.selectedObject = undefined
         }
+        this.selectedObject = undefined
+        this.selectedTool = undefined
       },
       handleMouseUp(event:MouseEvent) {
         if (!this.mouse.isMouseDown || !this.selectedObject) return;
@@ -173,8 +176,9 @@
           this.mouse.lastY = this.mouse.startY;
         }
       },
-      changeTool(tool:string) {
-        this.selectedTool = tool;
+      changeTool(tool:ParticleProps|undefined) {
+        this.selectedTool = tool
+        this.selectedObject = tool
       }
     }
   }

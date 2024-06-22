@@ -1,66 +1,62 @@
 <script lang="ts">
+import type { ParticleProps } from '@/types';
 
-type Particle = {
-  id?: number,
-  isCircle?: boolean,
-  mass?: number
-  friction?: number
-  attractionForce?: number
-  collitionForce?: number
-  gravityForce?: number
-  radius?: number
-  width?: number
-  height?: number
-}
 
 export default {
   props: ['particleData'],
   data() {
-    const particle: Particle = {};
+    const particle: ParticleProps = {};
     return {
       particle: particle
     }
   },
   mounted() {
-    this.particle = {
-      id: this.particleData.id,
-      isCircle: this.particleData.isCircle,
-      mass: this.particleData.mass,
-      friction: this.particleData.friction,
-      attractionForce: this.particleData.attractionForce,
-      collitionForce: this.particleData.collitionForce,
-      gravityForce: this.particleData.gravityForce,
-      radius: this.particleData.radius,
-      width: this.particleData.width,
-      height: this.particleData.height,
-    }
+    this.particle = {...this.particleData}
   },
   watch: {
     particleData(particle) {
-      this.particle = {
-        id: particle.id,
-        isCircle: particle.isCircle,
-        mass: particle.mass,
-        friction: particle.friction,
-        attractionForce: particle.attractionForce,
-        collitionForce: particle.collitionForce,
-        gravityForce: particle.gravityForce,
-        radius: particle.radius,
-        width: particle.width,
-        height: particle.height,
-      }
+      this.particle = {...particle}
     }
   },
   methods: {
     updateParticle() {
       this.$emit('update', {...this.particle})
+      if (!this.particle.id) {
+        this.$emit('save', this.particle)
+      }
     },
+    saveParticle() {
+      this.$emit('save', this.particle)
+    }
   }
 }
 </script>
 
 <template>
   <div>
+    <div class="row mb-3">
+      <label for="mass" class="col-4 text-end">ID</label>
+      <div class="col-5">
+        <input 
+          type="text" 
+          class="form-control" 
+          v-model="particle.id"
+          disabled 
+        />
+      </div>
+    </div>
+    <div class="row mb-3">
+      <label for="mass" class="col-4 text-end">Name</label>
+      <div class="col-5">
+        <input 
+          type="text" 
+          class="form-control" 
+          @change="updateParticle"
+          v-model="particle.name" 
+        />
+      </div>
+    </div>
+
     <div class="row mb-3">
       <label for="mass" class="col-4 text-end">Mass</label>
       <div class="col-5">
@@ -190,6 +186,7 @@ export default {
         />
       </div>
     </div>
+
     <div class="row mb-3">
       <label for="gravityForce" class="col-4 text-end">Gravity</label>
       <div class="col-5">
@@ -215,6 +212,7 @@ export default {
         />
       </div>
     </div>
+
     <div class="row mb-3">
       <label for="collitionForce" class="col-4 text-end">Collition</label>
       <div class="col-5">
@@ -240,6 +238,7 @@ export default {
         />
       </div>
     </div>
+
     <div class="row mb-3">
       <label for="friction" class="col-4 text-end">Friction</label>
       <div class="col-5">
@@ -263,5 +262,33 @@ export default {
         />
       </div>
     </div>
+
+    
+    <div class="row mb-3">
+      <label for="friction" class="col-4 text-end">Color</label>
+      <div class="col-5">
+        <input
+          type="text"
+          class="form-control form-control-sm particle-controls"
+          @change="updateParticle"
+          v-model="particle.baseColor"
+        />
+      </div>
+    </div>
+
+    <div class="row justify-content-center align-items-center g-2">
+      <div class="col">
+        <a
+          name=""
+          id=""
+          class="btn btn-primary"
+          href="#"
+          role="button"
+          @click.prevent="saveParticle"
+          >Save</a
+        >
+      </div>
+    </div>
+    
   </div>
 </template>

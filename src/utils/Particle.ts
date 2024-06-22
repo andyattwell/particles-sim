@@ -1,12 +1,13 @@
 import type { ParticleProps, Position } from "@/types"
 import type Game from "./Game"
 
-export default class Body {
+export default class Particle {
+  id?:number|string
+  name?: string
   game: Game
   canvas: any
   ctx: any
-  type:string = ''
-  id?:number
+  
   x = 0
   y = 0
   velocityX = 0
@@ -21,7 +22,8 @@ export default class Body {
   collitionForce = 1
   attractionForce = 0.5
   gravityForce = 0.05
-  isCircle = false
+  isCircle:boolean = true
+  type:string = 'type'
   grounded = false
   isDragging = false
   selected = false
@@ -54,18 +56,32 @@ export default class Body {
         this.y = props.y
       }
     }
-    if (props.radius) {
+    if (props.type) {
+      this.type = props.type
+    }
+
+    if (props.type === 'circle') {
       this.radius = Number(props.radius)
-      this.height = Number(props.radius)
-      this.width = Number(props.radius)
+      if (!this.radius) {
+        this.radius = 20
+      }
+      this.height = Number(this.radius) / 2
+      this.width = Number(this.radius) / 2
       this.isCircle = true
-    }
-    if (props.width) {
-      this.width = Number(props.width)
-    }
-    if (props.height) {
+    } else {
+      this.isCircle = false
+      
       this.height = Number(props.height)
+      this.width = Number(props.width)
+
+      if (!this.height) {
+        this.height = 20
+      }
+      if (!this.width) {
+        this.width = 20
+      }
     }
+
     if (props.friction) {
       this.friction = Number(props.friction)
     }
@@ -81,26 +97,44 @@ export default class Body {
     if (props.gravityForce) {
       this.gravityForce = Number(props.gravityForce)
     }
-    if (props.color) {
-      this.baseColor = props.color
-      this.color = props.color
+    if (props.baseColor) {
+      this.baseColor = props.baseColor
+      this.color = props.baseColor
     }
+    
+    if (props.name) {
+      this.name = props.name
+    }
+
     if (!this.id) {
       this.id = Math.floor(Math.random() * 10000)
     }
   }
 
   draw() {
+    this.ctx.beginPath()
+    if (!this.isCircle) {
+      this.ctx.rect(this.x, this.y, this.width, this.height)
+    } else {
+      this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+    }
+    this.ctx.fillStyle = this.color
+    this.ctx.fill()
+    this.ctx.closePath()
+    this.drawBoundingBox()
+  }
+
+  drawBoundingBox() {
     const boundingBox = this.getBoundingBox()
     this.ctx.beginPath();
     this.ctx.rect(boundingBox.left, boundingBox.top, boundingBox.width, boundingBox.height);
     this.ctx.lineWidth = 2; // Border width
-    this.ctx.strokeStyle = '#FFFFFF'; // Border color
+    this.ctx.strokeStyle = '#343434'; // Border color
     this.ctx.stroke();
     this.ctx.closePath();
   }
 
-  update(index:number, objects:Array<Body>) {
+  update(index:number, objects:Array<Particle>) {
     
     objects.forEach((particle2, index2) => {
       if (index !== index2) {
@@ -193,7 +227,7 @@ export default class Body {
     this.velocityY += (forceMagnitude * direction.y) / this.mass
   }
 
-  applyAttraction(obj2:Body) {
+  applyAttraction(obj2:Particle) {
     if (this.attractionForce === 0) {
       return
     }
@@ -231,13 +265,13 @@ export default class Body {
       y = tmpY
     }
 
-    if (this.isCircle ) {
+    if (this.type !== 'box') {
       width = this.radius * 2
       height = this.radius * 2
-      left = x - this.radius;
-      right = left + width;
-      top = y - this.radius;
-      bottom = top + height;
+      left = x - this.radius
+      right = left + width
+      top = y - this.radius
+      bottom = top + height
     } else {
       left = x;
       right = left + width;
@@ -255,7 +289,7 @@ export default class Body {
     };
   }
 
-  getDirectionTo(target:Body) {
+  getDirectionTo(target:Particle) {
     let dx, dy;
 
     if (this.radius > 0 || target.radius) {
@@ -281,7 +315,7 @@ export default class Body {
     return { direction, distance };
   }
 
-  checkCollition(target:Body) {
+  checkCollition(target:Particle) {
     let isColliding = false
     let dx = 0
     let dy = 0
@@ -366,7 +400,7 @@ export default class Body {
     }
   }
 
-  collideWith(target:Body, direction:Position) {
+  collideWith(target:Particle, direction:Position) {
     // this.color = "#9500DD";
     if (!target) {
       return false;
@@ -398,6 +432,7 @@ export default class Body {
 
   isClicked(inBounds:Position) {
     const boundingBox = this.getBoundingBox()
+
     return (inBounds.x >= boundingBox.left &&
       inBounds.x <= boundingBox.right &&
       inBounds.y >= boundingBox.top &&

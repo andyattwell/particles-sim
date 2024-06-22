@@ -1,8 +1,8 @@
 import type { ParticleProps } from '@/types'
-import Body from './Body'
+import Particle from './Particle'
 import type Game from './Game'
 
-export default class Box extends Body {
+export default class Box extends Particle {
     // radius = 10
     radius = 0
     width = 20

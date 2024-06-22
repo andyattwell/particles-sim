@@ -9,8 +9,9 @@ export type Config = {
   canvasMaxHeight?: number
 }
 export type ParticleProps = {
-  id?: number
-  type: string
+  id?: number|string
+  name?: string
+  type?: string
   mass?: number|string
   friction?: number|string
   attractionForce?: number|string
@@ -21,7 +22,8 @@ export type ParticleProps = {
   height?: number|string
   containerHeight?: number|string
   containerWidth?: number|string
-  color?: 'string'
+  baseColor?:string
+  color?:string
   isCircle?: boolean
   x?: number
   y?: number

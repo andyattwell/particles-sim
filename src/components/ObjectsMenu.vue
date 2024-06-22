@@ -1,13 +1,38 @@
 
 <script lang="ts">
+import type { ParticleProps } from '@/types';
+
   export default {
-    props: ['selectedTool'],
+    props: ['selectedTool', 'settings'],
     data() {
-      return {}
+      return {
+        objectTypes: [
+          {
+            name: 'Circle',
+            type: 'circle',
+            color: 'red'
+          },
+          {
+            name: 'Box',
+            type: 'box',
+            color: 'blue'
+          },
+        ]
+      }
+    },
+    computed: {
+      savedParticles() {
+        return this.settings?.loadParticles() 
+      }
+    },
+    mounted(){
     },
     methods: {
-      selectItem(item: string) {
+      selectItem(item: any) {
         this.$emit('select', item)
+      },
+      deleteParticle(particle: ParticleProps) {
+        this.settings?.deleteParticle(particle) 
       }
     }
   }
@@ -16,21 +41,43 @@
   <div>
     <div class="list-group">
       <a href="#" 
+        v-for="object in objectTypes"
+        :key="object.type"
         class="list-group-item list-group-item-action" 
-        :class="{'active' : selectedTool === 'particle'}"  
-        :aria-current="selectedTool === 'particle'"
-        @click="selectItem('circle')">
-        Particle
+        :class="{'active' : selectedTool === object.type}"  
+        :aria-current="selectedTool === object.type"
+        @click="selectItem(object)">
+        {{ object.type }}
       </a>
-      <a href="#" class="list-group-item list-group-item-action" 
-        :class="{'active' : selectedTool === 'box'}"  
-        :aria-current="selectedTool === 'box'"
-        @click="selectItem('box')">Box</a>
     </div>
 
+    <h5 class="mt-3">Saved Particles</h5>
+
+    <ul class="list-group saved-particles">
+      <li class="list-group-item"
+        :class="{active: particle.name === selectedTool?.name}"
+        v-for="particle in savedParticles"
+        :key="particle.type + particle.name"
+      >
+        <a href="#" @click.prevent="selectItem(particle)">
+          {{ particle.type }} - {{ particle.name }}
+        </a>
+
+        <button
+          type="button"
+          class="btn btn-danger btn-sm float-end"
+          @click="deleteParticle(particle)"
+        >
+          Delete
+        </button>
+        
+      </li>
+    </ul>
     <!-- <div class="box-min"></div> -->
   </div>
 </template>
 <style>
-
+.list-group-item {
+  text-transform: capitalize
+}
 </style>
