@@ -1,6 +1,8 @@
+import type { ParticleProps } from '@/types'
 import Body from './Body'
-export default class Particle extends Body {
-  ctx
+import type Game from './Game'
+
+export default class Circle extends Body {
   color = '#0095DD'
   baseColor = '#0095DD'
   selected = false
@@ -8,10 +10,8 @@ export default class Particle extends Body {
   isCircle = true
   type = 'particle'
 
-  constructor(game, props) {
+  constructor(game: Game, props:ParticleProps) {
     super(game, props)
-    this.canvas = game.canvas
-    this.ctx = this.canvas.getContext('2d')
   }
   
   draw() {

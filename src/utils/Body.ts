@@ -1,6 +1,12 @@
+import type { ParticleProps, Position } from "@/types"
+import type Game from "./Game"
+
 export default class Body {
-  type
-  id
+  game: Game
+  canvas: any
+  ctx: any
+  type:string = ''
+  id?:number
   x = 0
   y = 0
   velocityX = 0
@@ -8,8 +14,8 @@ export default class Body {
   radius = 0
   width = 0
   height = 0
-  containerWidth = 0
-  containerHeight = 0
+  containerWidth:number|undefined = 0
+  containerHeight:number|undefined = 0
   friction = 0.95
   mass = 1
   collitionForce = 1
@@ -18,17 +24,74 @@ export default class Body {
   isCircle = false
   grounded = false
   isDragging = false
-
+  selected = false
   baseColor = "#ffffff"
+  color = "#ffffff"
   collitionColor = "#f62626"
 
-  constructor(game, props) {
+  constructor(game:Game, props:ParticleProps|null = null) {
     this.game = game
-    this.setConfig(props)
+    this.canvas = game.canvas
+    this.ctx = this.canvas.getContext('2d')
+    if (props) {
+      this.setConfig(props)
+    }
+  }
+
+  setConfig(props: ParticleProps) {
+    
+    this.containerWidth = Number(this.game.config.containerWidth)
+    this.containerHeight = Number(this.game.config.containerWidth)
+
+    if (props.position) {
+      this.x = props.position.x
+      this.y = props.position.y
+    } else {
+      if (props.x) {
+        this.x = props.x
+      }
+      if (props.y) {
+        this.y = props.y
+      }
+    }
+    if (props.radius) {
+      this.radius = Number(props.radius)
+      this.height = Number(props.radius)
+      this.width = Number(props.radius)
+      this.isCircle = true
+    }
+    if (props.width) {
+      this.width = Number(props.width)
+    }
+    if (props.height) {
+      this.height = Number(props.height)
+    }
+    if (props.friction) {
+      this.friction = Number(props.friction)
+    }
+    if (props.mass) {
+      this.mass = Number(props.mass)
+    }
+    if (props.collitionForce) {
+      this.collitionForce = Number(props.collitionForce)
+    }
+    if (props.attractionForce) {
+      this.attractionForce = Number(props.attractionForce)
+    }
+    if (props.gravityForce) {
+      this.gravityForce = Number(props.gravityForce)
+    }
+    if (props.color) {
+      this.baseColor = props.color
+      this.color = props.color
+    }
+    if (!this.id) {
+      this.id = Math.floor(Math.random() * 10000)
+    }
   }
 
   draw() {
-    let boundingBox = this.getBoundingBox()
+    const boundingBox = this.getBoundingBox()
     this.ctx.beginPath();
     this.ctx.rect(boundingBox.left, boundingBox.top, boundingBox.width, boundingBox.height);
     this.ctx.lineWidth = 2; // Border width
@@ -37,7 +100,7 @@ export default class Body {
     this.ctx.closePath();
   }
 
-  update(index, objects) {
+  update(index:number, objects:Array<Body>) {
     
     objects.forEach((particle2, index2) => {
       if (index !== index2) {
@@ -85,8 +148,8 @@ export default class Body {
     // Check X bounds
     const canvasHeight = parseInt(this.game.canvas.height)
     const canvasWidth =  parseInt(this.game.canvas.width)
-    const containerHeight = parseInt(this.game.config.containerHeight)
-    const containerWidth = parseInt(this.game.config.containerWidth)
+    const containerHeight = this.game.config.containerHeight || 1
+    const containerWidth = this.game.config.containerWidth || 1
 
     const clipX = (canvasWidth / 2) - (containerWidth / 2)
     const clipY = (canvasHeight / 2) - (containerHeight / 2)
@@ -120,7 +183,7 @@ export default class Body {
     this.y = nextY
   }
 
-  applyForce(forceMagnitude, direction, type) {
+  applyForce(forceMagnitude:number, direction: Position) {
     // Apply force based on the direction vector
     if (!direction || (direction.x === 0 && direction.y === 0)) {
       return;
@@ -130,83 +193,33 @@ export default class Body {
     this.velocityY += (forceMagnitude * direction.y) / this.mass
   }
 
-  applyAttraction(obj2) {
+  applyAttraction(obj2:Body) {
     if (this.attractionForce === 0) {
       return
     }
-    const dx = this.x - obj2.x 
-    const dy = this.y - obj2.y
+    const dx = this.x - (obj2.x || 0) 
+    const dy = this.y - (obj2.y || 0)
     const distance = Math.sqrt(dx * dx + dy * dy)
     if (distance > 0) {
       const forceMagnitude = this.attractionForce / distance
       const forceX = (dx / distance) * forceMagnitude
       const forceY = (dy / distance) * forceMagnitude
-      obj2.applyForce(0.1, { x: forceX, y: forceY }, 'attraction')
+      obj2.applyForce(0.1, { x: forceX, y: forceY })
     }
   }
 
   applyGravity() {
     const canvasHeight = parseInt(this.game.canvas.height)
-    const containerHeight = parseInt(this.game.config.containerHeight)
+    const containerHeight = this.game.config.containerHeight || 1
     const clipY = (canvasHeight / 2) - (containerHeight / 2)
 
     const dy = clipY + containerHeight - this.y
     if (dy > 0) {
-      this.applyForce(this.gravityForce, { x: 0, y: 1 }, 'gravity')
+      this.applyForce(this.gravityForce, { x: 0, y: 1 })
     }
   }
 
-  setConfig(props) {
-    
-    if (props.position) {
-      this.x = parseFloat(props.position.x)
-      this.y = parseFloat(props.position.y)
-    } else {
-      if (props.x) {
-        this.x = parseFloat(props.x)
-      }
-  
-      if (props.y) {
-        this.y = parseFloat(props.y)
-      }
-    }
-    if (props.radius && props.radius > 0) {
-      this.radius = parseInt(props.radius)
-      this.height = parseInt(props.radius)
-      this.width = parseInt(props.radius)
-      this.isCircle = true
-    }
-    if (props.width) {
-      this.width = parseInt(props.width)
-    }
-    if (props.height) {
-      this.height = parseInt(props.height)
-    }
-    if (props.friction) {
-      this.friction = parseFloat(props.friction)
-    }
-    if (props.mass) {
-      this.mass = parseFloat(props.mass)
-    }
-    if (props.collitionForce) {
-      this.collitionForce = parseFloat(props.collitionForce)
-    }
-    if (props.attractionForce) {
-      this.attractionForce = parseFloat(props.attractionForce)
-    }
-    if (props.gravityForce) {
-      this.gravityForce = parseFloat(props.gravityForce)
-    }
-    if (props.color) {
-      this.baseColor = props.color
-      this.color = props.color
-    }
-    if (!this.id) {
-      this.id = Math.floor(Math.random() * 10000)
-    }
-  }
-
-  getBoundingBox(tmpX, tmpY) {
+  getBoundingBox(tmpX: number|null = null, tmpY:number|null = null) {
     let left, right, top, bottom;
     let width = this.width
     let height = this.height
@@ -242,19 +255,19 @@ export default class Body {
     };
   }
 
-  getDirectionTo(target) {
+  getDirectionTo(target:Body) {
     let dx, dy;
 
     if (this.radius > 0 || target.radius) {
       // For circular objects
-      dx = target.x - this.x;
-      dy = target.y - this.y;
+      dx = (target.x || 0) - this.x;
+      dy = (target.y || 0) - this.y;
     } else {
       // For rectangular objects, compute center points
       const centerX1 = this.x + this.width / 2;
       const centerY1 = this.y + this.height / 2;
-      const centerX2 = target.x + target.width / 2;
-      const centerY2 = target.y + target.height / 2;
+      const centerX2 = (target.x || 0) + (target.width || 0) / 2;
+      const centerY2 = (target.y || 0) + (target.height || 0) / 2;
 
       dx = centerX2 - centerX1;
       dy = centerY2 - centerY1;
@@ -268,7 +281,7 @@ export default class Body {
     return { direction, distance };
   }
 
-  checkCollition(target) {
+  checkCollition(target:Body) {
     let isColliding = false
     let dx = 0
     let dy = 0
@@ -353,7 +366,7 @@ export default class Body {
     }
   }
 
-  collideWith(target, direction) {
+  collideWith(target:Body, direction:Position) {
     // this.color = "#9500DD";
     if (!target) {
       return false;
@@ -361,7 +374,7 @@ export default class Body {
 
     if (this.collitionForce > 0) {
       target.applyForce(this.collitionForce, direction)
-      if (!this.isDragging) {
+      if (!this.isDragging && target.collitionForce) {
         this.applyForce(target.collitionForce, {
           x: direction.x * -1,
           y: direction.y * -1,
@@ -377,14 +390,14 @@ export default class Body {
 
   }
 
-  setColor (color){
+  setColor (color:string){
     if (!this.selected) {
       this.color = color
     }
   }
 
-  isClicked(inBounds) {
-    let boundingBox = this.getBoundingBox()
+  isClicked(inBounds:Position) {
+    const boundingBox = this.getBoundingBox()
     return (inBounds.x >= boundingBox.left &&
       inBounds.x <= boundingBox.right &&
       inBounds.y >= boundingBox.top &&

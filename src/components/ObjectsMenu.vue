@@ -19,7 +19,7 @@
         class="list-group-item list-group-item-action" 
         :class="{'active' : selectedTool === 'particle'}"  
         :aria-current="selectedTool === 'particle'"
-        @click="selectItem('particle')">
+        @click="selectItem('circle')">
         Particle
       </a>
       <a href="#" class="list-group-item list-group-item-action" 

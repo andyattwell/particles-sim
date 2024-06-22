@@ -1,42 +1,25 @@
 <script lang="ts">
 import ObjectsMenu from './ObjectsMenu.vue'
 import ParticleForm from './ParticleForm.vue'
-import { INITIAL_GAME_CONFIG } from '../utils/Settings.js'
+import DragComponent from './DragComponent.vue'
 
-type Config = {
-  particles?: any
-  profileName?: string
-  particleAmmount?: number
-  containerWidth?: number
-  canvasMaxWidth?: number
-  containerHeight?: number
-  canvasMaxHeight?: number
-}
-
-type Particle = {
-  id?: number,
-  mass?: number
-  friction?: number
-  attractionForce?: number
-  collitionForce?: number
-  gravityForce?: number
-  radius?: number
-  width?: number
-  height?: number
-}
+import type { Config } from '../types'
+import type Box from '@/utils/Box'
+import type Circle from '@/utils/Circle'
 
 export default {
   props: ['selectedTool', 'selectedObject', 'settings'],
   components: {
-    ObjectsMenu, ParticleForm
+    ObjectsMenu, ParticleForm, DragComponent
   },
   data() {
-    const particle: Particle = {};
-    // const config: Config = INITIAL_GAME_CONFIG
+    let particle: Circle|Box|undefined
+    let config: Config|undefined
+    const profiles: Array<Config> = []
     return {
       selectedProfile: 'Default',
-      profiles: [],
-      config: INITIAL_GAME_CONFIG,
+      profiles: profiles,
+      config: config,
       panelWidth: 600,
       isDragging: false,
       startX: 0,
@@ -47,6 +30,7 @@ export default {
   mounted() {
     const self = this
     self.setPanelSize();
+    this.config = {...this.settings}
   },
   watch: {
     selectedObject: {
@@ -57,15 +41,23 @@ export default {
     },
     settings: {
       handler(settings) {
-        this.config = settings
+        if (!this.settings) {
+          this.config = {...settings}
+        }
       }
     },
   },
   methods: {
     updateConfig() {
-      this.$emit('update', this.config)
+      const containerWidth = Number(this.config?.containerWidth);
+      const containerHeight = Number(this.config?.containerHeight);
+      this.$emit('update', {
+        ...this.config,
+        containerWidth,
+        containerHeight
+      })
     },
-    updateParticle(particle:Particle) {
+    updateParticle(particle:Circle|Box) {
       this.$emit('update-particle', particle)
     },
     changeTab(tab:string) {
@@ -87,9 +79,10 @@ export default {
       if (this.selectedProfile === 'New') {
         return this.addProfile()
       }
-      const profile = this.profiles.find((p) => p.profileName == profileName);
-      this.selectedProfile = profile.profileName
-      this.config = profile;
+      const profile = this.profiles.find((p: Config) => p.profileName == this.selectedProfile);
+      if (profile) {
+        this.config = profile;
+      }
     },
     addProfile() {
       const regex = /^New profile\s*\d*$/i;
@@ -103,44 +96,30 @@ export default {
       }
       this.profiles.push(newConfig)
       this.config = newConfig
-      this.selectedProfile = newConfig.profileName
+      this.selectedProfile = newConfig.profileName || ''
       this.$emit('update', newConfig)
 
     },
     deleteConfig() {
-      this.profiles = this.profiles.filter((p) => p.profileName !== profileName)
-      this.config = this.profiles[this.profiles.length - 1];
-      this.selectedProfile = this.config.profileName
+      this.profiles = this.profiles.filter((p) => p.profileName !== this.selectedProfile)
+      this.config = this.profiles[0];
+      this.selectedProfile = this.config.profileName || ''
     },
-    startDrag (event:any) {
-      this.isDragging = true;
-      this.startX = event.clientX;
-
-      document.addEventListener('mousemove', this.onDrag);
-      document.addEventListener('mouseup', this.stopDrag);
-    },
-    onDrag(event:any) {
-      if (!this.isDragging) return;
-      const next = this.panelWidth + this.startX - event.clientX;
+    onDrag(position: any) {
+      const next = this.panelWidth + position.x;
       if (next >= 300 && next <= 800) {
         this.panelWidth = next
-        this.startX = event.clientX
         this.$emit('resize', next)
       }
     },
-    stopDrag() {
-      this.isDragging = false;
-      localStorage.setItem('partsim-panelWidth', this.panelWidth.toString());
-      document.removeEventListener('mousemove', this.onDrag);
-      document.removeEventListener('mouseup', this.stopDrag);
-    }
   }
 }
 </script>
 
 <template>
   <div class="p-3" id="particle-controls" :style="{'width': panelWidth + 'px'}">
-    <div class="particle-controls-slider" @mousedown="startDrag"></div>
+    <!-- <div class="particle-controls-slider" @mousedown="startDrag"></div> -->
+    <DragComponent @drag="onDrag"></DragComponent>
     <div class="card p-2 pt-0">
       <h1 class="card-title">Settings</h1>
       
@@ -286,15 +265,4 @@ export default {
   overflow-y: scroll;
 }
 
-.particle-controls-slider {
-  display: block;
-  content:"";
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 4px;
-  background-color: #ffe600;;
-  cursor: e-resize;
-}
 </style>

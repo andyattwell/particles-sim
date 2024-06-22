@@ -1,15 +1,19 @@
-import Particle from './Particle'
+import Circle from './Circle'
 import Box from './Box'
-import { INITIAL_GAME_CONFIG } from './Settings.js'
+import { INITIAL_GAME_CONFIG } from './Settings'
+import type { Config, ParticleType, ParticleProps } from '../types'
 
 export default class Game {
-  canvas
-  ctx
-  particles = []
-  config = INITIAL_GAME_CONFIG
-  requestId = null
+  canvasId: string
+  canvas: any = null
+  ctx:any
+  particles:Array<Circle|Box> = []
+  config:Config = INITIAL_GAME_CONFIG
+  requestId:number|null = null
+  playing = false
+  selectedProfile: string|undefined = 'Default'
 
-  constructor(canvasId, config) {
+  constructor(canvasId:string, config:Config|null = null) {
     this.canvasId = canvasId
     if (config) {
       this.config = config
@@ -18,9 +22,8 @@ export default class Game {
   }
 
   start() {
-    // this.setCanvasSize()
     this.particles = []
-    this.createParticles(1, 'particle')
+    this.createParticles(1, 'circle')
     this.createParticles(1, 'box')
     this.play()
   }
@@ -49,7 +52,7 @@ export default class Game {
     return this.playing
   }
 
-  reset(config) {
+  reset(config:Config) {
     this.config = config
     this.particles = []
     this.start()
@@ -59,7 +62,7 @@ export default class Game {
     if (!this.ctx) {
       return
     }
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    this.ctx.clearRect(0, 0, this.canvas?.width, this.canvas?.height)
     const self = this
 
     this.ctx.save();
@@ -82,10 +85,13 @@ export default class Game {
   }
 
   drawClippingMask() {
-    const clipWidth = this.config.containerWidth; // Example: Width to clip
-    const clipHeight = this.config.containerHeight; // Example: Height to clip
-    const clipX = this.canvas.width / 2 - this.config.containerWidth / 2
-    const clipY = this.canvas.height / 2 - this.config.containerHeight / 2
+    if (!this.canvas || !this.config) {
+      return
+    }
+    const clipWidth = this.config.containerWidth || 1;
+    const clipHeight = this.config.containerHeight || 1;
+    const clipX = this.canvas.width / 2 - clipWidth / 2
+    const clipY = this.canvas.height / 2 - clipHeight / 2
     this.ctx.beginPath();
     this.ctx.rect(clipX, clipY, clipWidth, clipHeight);
     this.ctx.clip();
@@ -96,51 +102,59 @@ export default class Game {
   }
 
   getMaskPosition() {
-    const clipX = this.canvas.width / 2 - this.config.containerWidth / 2
-    const clipY = this.canvas.height / 2 - this.config.containerHeight / 2
+    const canvasWidth = this.canvas?.width || 1
+    const canvasHeight = this.canvas?.width || 1
+    const containerWidth = this.config?.containerWidth || 1
+    const containerHeight = this.config?.containerHeight || 1
+
+    const clipX = canvasWidth / 2 - containerWidth / 2
+    const clipY = canvasHeight / 2 - containerHeight / 2
     return {
       x: clipX,
       y: clipY
     }
   }
 
-  getRandomNumber(max) {
+  getRandomNumber(max:number) {
     return Math.floor(Math.random() * (max + 1))
   }
 
-  addObject (type, props) {
+  addObject (props:ParticleProps) {
     let obj;
-    if (type === 'particle') {
-      obj = new Particle(this, props);
-    } else if (type === 'box') {
+    if (props.type === 'circle') {
+      obj = new Circle(this, props);
+    } else if (props.type === 'box') {
       obj = new Box(this, props);
     }
-
     if (obj) {
       this.particles.push(obj)
     }
   }
 
-  createParticles(particleAmmount, type) {
+  createParticles(particleAmmount:number, type:string) {
     const clipPos = this.getMaskPosition();
+    const containerWidth = this.config.containerWidth || 1;
+    const containerHeight = this.config.containerWidth || 1;
     for (let index = 0; index < particleAmmount; index++) {
       const position = {
-        x: clipPos.x + this.getRandomNumber(this.config.containerWidth),
-        y: clipPos.y + this.getRandomNumber(this.config.containerHeight)
+        x: clipPos.x + this.getRandomNumber(containerWidth),
+        y: clipPos.y + this.getRandomNumber(containerHeight)
       }
-      this.addObject(type, { position })
+      this.addObject({ type, position })
     }
   }
 
-  loadParticles(particlesArr) {
+  loadParticles(particlesArr:Array<ParticleProps>) {
     if (!particlesArr) return false;
+    const containerWidth = this.config.containerWidth || 1;
+    const containerHeight = this.config.containerWidth || 1;
     this.particles = []
     particlesArr.forEach(p => {
-      this.addObject(p.type, {
+      this.addObject({
         ...this.config,
         ...p, 
-        containerHeight: parseInt(this.config.containerHeight),
-        containerWidth: parseInt(this.config.containerWidth)
+        containerHeight: containerWidth,
+        containerWidth: containerHeight
       })
     });
   }
@@ -151,21 +165,26 @@ export default class Game {
       this.loadParticles(this.config.particles);
     }
 
+    const containerWidth = this.config.containerWidth || 1;
+    const containerHeight = this.config.containerWidth || 1;
+
     this.particles.forEach((particle) => {
-      particle.containerWidth = parseInt(this.config.containerWidth)
-      particle.containerHeight = parseInt(this.config.containerHeight)
+      particle.containerWidth = containerWidth
+      particle.containerHeight = containerHeight
     })
   }
 
-  moveParticle(particle, mouseX, mouseY) {
+  moveParticle(particle:Circle|Box, mouseX:number, mouseY:number) {
     
+    if (!this.canvas) return;
+
     let nextX = mouseX
     let nextY = mouseY
 
-    const canvasHeight = parseInt(this.canvas.height)
-    const canvasWidth =  parseInt(this.canvas.width)
-    const containerHeight = parseInt(this.config.containerHeight)
-    const containerWidth = parseInt(this.config.containerWidth)
+    const canvasHeight = this.canvas.height
+    const canvasWidth =  this.canvas.width
+    const containerHeight = this.config.containerHeight || 1
+    const containerWidth = this.config.containerWidth || 1
 
     const clipX = (canvasWidth / 2) - (containerWidth / 2)
     const clipY = (canvasHeight / 2) - (containerHeight / 2)
@@ -195,19 +214,24 @@ export default class Game {
     particle.y = nextY
   }
 
-  handleTool(tool, inBounds) {
-    this.addObject(tool, {
+  handleTool(tool: string, inBounds:any) {
+    this.addObject({
+      type: tool,
       position: inBounds
     });
   }
 
-  setParticleProps(newParticle) {
+  setParticleProps(newParticle:ParticleProps) {
     const particle = this.particles.find((p) => newParticle.id === p.id)
     if(!particle) return;
     particle.setConfig(newParticle);
   }
 
-  checkWindowBouds(pageX, pageY, particle) {
+  checkWindowBouds(pageX:number, pageY:number, particle:ParticleType|null = null) {
+    if (!this.canvas) {
+      return
+    }
+
     const windowHeight = this.canvas.height
     const windowWidth = this.canvas.width
 
@@ -221,11 +245,12 @@ export default class Game {
     if (particle) {
       boundingBox = particle.getBoundingBox()
     }
-
-    let canvasLeft = windowWidth / 2 - parseInt(this.config.containerWidth) / 2
-    let canvasRight = canvasLeft + parseInt(this.config.containerWidth)
-    let canvasTop = windowHeight / 2 - parseInt(this.config.containerHeight) / 2
-    let canvasBottom = canvasTop + parseInt(this.config.containerHeight)
+    const containerHeight = this.config.containerHeight || 1
+    const containerWidth = this.config.containerWidth || 1
+    const canvasLeft = windowWidth / 2 - containerWidth / 2
+    const canvasRight = canvasLeft + containerWidth
+    const canvasTop = windowHeight / 2 - containerHeight / 2
+    const canvasBottom = canvasTop + containerHeight
     const canvasPosition = this.canvas.getBoundingClientRect()
 
     let inbound = true
@@ -238,8 +263,8 @@ export default class Game {
       inbound = false
     }
 
-    let x = pageX - canvasPosition.left;
-    let y = pageY - canvasPosition.top;
+    const x = pageX - canvasPosition.left;
+    const y = pageY - canvasPosition.top;
 
     return { inbound, x, y }
   }
@@ -249,46 +274,57 @@ export default class Game {
     this.ctx = this.canvas?.getContext('2d')
   }
 
-  setCanvasSize(containerWidth) {
+  setCanvasSize(setWidth:number|null = null) {
     this.setCanvas();
     if (!this.canvas) {
       return;
     }
     const container = document.getElementById('canvas-container');
 
-    let width = parseInt(container.clientWidth);
-    let height = parseInt(container.clientHeight);
+    if (!container) return;
 
-    if (containerWidth) {
-      width = parseInt(containerWidth);
+    let width = container.clientWidth;
+    const height = container.clientHeight;
+
+    if (setWidth) {
+      width = setWidth;
     }
     
-    this.canvas.setAttribute('width', width)
-    this.canvas.setAttribute('height', height)
+    this.canvas.setAttribute('width', width.toString())
+    this.canvas.setAttribute('height', height.toString())
 
-    this.config.canvasMaxWidth = width;
-    this.config.canvasMaxHeight = height;
+    this.config.canvasMaxWidth = Number(width);
+    this.config.canvasMaxHeight = Number(height);
 
-    if (this.config.containerWidth > width) {
-      this.config.containerWidth = parseInt(width);
+    const containerHeight = this.config.containerHeight || 1
+    const containerWidth = this.config.containerWidth || 1
+
+    if (containerWidth > width) {
+      this.config.containerWidth = width
     }
-    if (this.config.containerHeight > height) {
-      this.config.containerHeight = parseInt(height);
+    if (containerHeight > height) {
+      this.config.containerHeight = height
     }
 
     this.applyConfig(this.config);
   }
   
-  applyConfig(config, reload) {
+  applyConfig(config: Config, reload:boolean = false) {
     this.config = config
+    this.config.canvasMaxWidth = Number(config.canvasMaxWidth);
+    this.config.canvasMaxHeight = Number(config.canvasMaxHeight);
     this.selectedProfile = config.profileName
 
+    this.particles.forEach((p) => {
+      p.containerWidth = Number(this.config.containerWidth)
+      p.containerHeight = Number(this.config.containerWidth)
+    })
     if (reload) {
       this.reset(this.config)
     }
   }
 
-  determineDirection(x1, y1, x2, y2) {
+  determineDirection(x1:number, y1:number, x2:number, y2:number) {
     const deltaX = x2 - x1;
     const deltaY = y2 - y1;
     return {

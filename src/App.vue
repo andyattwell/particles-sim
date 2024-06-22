@@ -16,7 +16,7 @@
       document.querySelector('html')?.setAttribute('data-bs-theme', 'dark')
     },
     methods: {
-      startGame(payload) {
+      startGame(payload:any) {
         this.started = true
         this.paused = false
 
@@ -28,7 +28,7 @@
           this.$refs.game.pauseGame()
         }
       },
-      pauseGame(isPlaying) {
+      pauseGame(isPlaying:boolean) {
         this.paused = !isPlaying
       }
     }

@@ -1,18 +1,31 @@
 <script lang="ts">
-  import Game from '../utils/Game.js'
+  import Game from '../utils/Game'
   import ControlPanel from './ControlPanel.vue'
+  import type { Config, ParticleProps } from '../types'
+  import Circle from '../utils/Circle'
+  import Box from '../utils/Box'
 
   export default {
     components: {
       ControlPanel
     },
     data() {
+      let selectedObject: Circle|Box|undefined;
       return {
         containerSize: 500,
         game: new Game('game-canvas'),
         selectedTool: '',
-        selectedObject: null,
-        mouse: {}
+        selectedObject: selectedObject,
+        mouse: {
+          startX: 0,
+          startY: 0,
+          endX: 0,
+          endY: 0,
+          lastX: 0,
+          lastY: 0,
+          isMouseDown: false
+        },
+        isPlaying: false,
       }
     },
     mounted() {
@@ -26,11 +39,11 @@
       pauseGame() {
         this.isPlaying = this.game.pause()
       },
-      updateConfig(config) {
+      updateConfig(config:Config) {
         this.game.applyConfig(config)
         this.game.setCanvasSize()
       },
-      updateParticle(particle:Particle) {
+      updateParticle(particle:ParticleProps) {
         this.game.setParticleProps(particle)
       },
       resizeContainer() {
@@ -54,12 +67,7 @@
           }
           event.preventDefault()
           if (event.button === 0) {
-            const selected = self.handleClick(event)
-            if (selected) {
-              this.selectedObject = selected
-              this.selectedObject.isDragging = true;
-            }
-            
+            self.handleClick(event)
             document.addEventListener('mousemove', mouseMove)
           }
           return false;
@@ -85,7 +93,7 @@
           // Your custom logic here
           self.changeTool('')
           self.handleRightClick();
-          self.selectedObject = null;
+          self.selectedObject = undefined;
         })
 
         document.addEventListener('keydown', (event) => {
@@ -95,9 +103,9 @@
           }
         })
       },
-      handleClick(event) {
+      handleClick(event:MouseEvent) {
         let inBounds = this.game.checkWindowBouds(event.clientX, event.clientY)
-        if (!inBounds.inbound) {
+        if (!inBounds?.inbound) {
           return
         }
 
@@ -106,40 +114,41 @@
           return;
         }
 
-        const particle = this.game.particles.find((p) => p.isClicked(inBounds))
-
-        this.mouse.startX = inBounds.x
-        this.mouse.startY = inBounds.y
-        this.mouse.isMouseDown = true
+        const particle = this.game.particles.find(
+          (p:Circle|Box) => p.isClicked(inBounds)
+        )
 
         if (particle) {
+          this.mouse.startX = inBounds.x
+          this.mouse.startY = inBounds.y
+          this.mouse.isMouseDown = true
 
-          if (this.selectedParticle && particle.id !== this.selectedParticle.id) {
-            this.selectedParticle.deselect();
+          if (this.selectedObject && particle.id !== this.selectedObject.id) {
+            this.selectedObject.deselect();
           }
 
-          this.selectedParticle = particle;
-          // this.selectedParticle.isDragging = true;
-          this.selectedParticle.select();
-          return this.selectedParticle
+          particle.select();
+          particle.isDragging = true
+          this.selectedObject = particle;
+          return this.selectedObject
         }
 
         return false;
       },
       handleRightClick() {
-        if (this.selectedParticle) {
-          this.selectedParticle.deselect()
-          this.selectedParticle = null
+        if (this.selectedObject) {
+          this.selectedObject.deselect()
+          this.selectedObject = undefined
         }
       },
-      handleMouseUp(event) {
-        if (!this.mouse.isMouseDown || !this.selectedParticle) return;
+      handleMouseUp(event:MouseEvent) {
+        if (!this.mouse.isMouseDown || !this.selectedObject) return;
 
         this.mouse.endX = event.clientX;
         this.mouse.endY = event.clientY;
         this.mouse.isMouseDown = false;
-        if (this.selectedParticle) {
-          this.selectedParticle.isDragging = false
+        if (this.selectedObject) {
+          this.selectedObject.isDragging = false
         }
 
         // const direction = this.determineDirection(this.mouse.startX, this.mouse.startY, this.mouse.endX, this.mouse.endY);
@@ -149,14 +158,14 @@
         // });
         // this.selectedParticle = null
       },
-      handleMouseMove(event) {
+      handleMouseMove(event:MouseEvent) {
 
         if (this.selectedTool) {
           return;
         }
 
-        if (this.selectedParticle && this.selectedParticle.isDragging) {
-          this.game.moveParticle(this.selectedParticle, event.clientX, event.clientY)
+        if (this.selectedObject && this.selectedObject.isDragging) {
+          this.game.moveParticle(this.selectedObject, event.clientX, event.clientY)
         }
 
         if (this.mouse.isMouseDown) {
@@ -168,7 +177,6 @@
         this.selectedTool = tool;
       }
     }
-    
   }
 </script>
 <template>
@@ -182,7 +190,9 @@
       @updateParticle="updateParticle"
       :selectedTool="selectedTool"
       :selectedObject="selectedObject"
-      @changeTool="changeTool"/>
+      @changeTool="changeTool"
+      :settings="game.config"  
+    />
   </div>
 </template>
 <style scoped>

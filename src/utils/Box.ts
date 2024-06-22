@@ -1,4 +1,7 @@
+import type { ParticleProps } from '@/types'
 import Body from './Body'
+import type Game from './Game'
+
 export default class Box extends Body {
     // radius = 10
     radius = 0
@@ -14,7 +17,7 @@ export default class Box extends Body {
     isCircle = false
     type = 'box'
 
-    constructor(game, props) {
+    constructor(game: Game, props: ParticleProps) {
         super(game, props)
         if (!props.height) {
             this.height = 20
@@ -22,8 +25,6 @@ export default class Box extends Body {
         if (!props.width) {
             this.width = 20
         }
-        this.canvas = game.canvas
-        this.ctx = this.canvas.getContext('2d')
     }
 
     draw() {
