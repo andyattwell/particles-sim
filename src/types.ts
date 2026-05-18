@@ -1,12 +1,13 @@
 
 export type Config = {
   particles?: any
-  profileName?: string
+  profileName: string
   particleAmmount?: number
   containerWidth?: number
   canvasMaxWidth?: number
   containerHeight?: number
   canvasMaxHeight?: number
+  panelWidth?: number
 }
 export type ParticleProps = {
   id?: number|string

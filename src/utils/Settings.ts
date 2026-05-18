@@ -1,5 +1,6 @@
 import type { Config, ParticleProps } from "@/types"
 import type Particle from "./Particle"
+// import type Game from "./Game"
 
 export const INITIAL_GAME_CONFIG = {
   profileName: 'Default',
@@ -7,72 +8,125 @@ export const INITIAL_GAME_CONFIG = {
   containerHeight: 300,
   canvasMaxWidth: 500,
   canvasMaxHeight: 500,
+  panelWidth: 300,
   particles: []
 }
 
 export default class Settings {
-  profiles = [INITIAL_GAME_CONFIG]
-  selectedProfile: Config|undefined = INITIAL_GAME_CONFIG
+  profiles:Array<Config> = []
+  selectedProfile: string = ''
   particleTypes: Array<Particle> = []
 
-  deleteProfile(profileName:string) {
-    this.profiles = this.profiles.filter((p) => p.profileName !== profileName)
-
-    if (this.profiles.length == 0) {
-      this.profiles = [INITIAL_GAME_CONFIG]
-    }
-
-    this.saveToLocalStorage()
-
+  constructor() {
+    const { profiles, selectedProfile } = Settings.loadSavedConfig()
+    this.profiles = profiles
+    this.selectedProfile = selectedProfile
   }
 
-  getProfile (profileName:string) {
-    return this.profiles.find((p) => p.profileName == profileName)
+  static getProfiles () {
+    return Settings.loadSavedConfig().profiles
+  }
+
+  static getProfile (profileName:string) {
+    const { profiles } = Settings.loadSavedConfig()
+    return profiles?.find((p) => p.profileName == profileName)
+  }
+
+  static deleteProfile(profileName:string) {
+    let profiles  = Settings.loadSavedConfig().profiles
+      .filter((p) => p.profileName !== profileName)
+
+    if (profiles.length == 0) {
+      profiles = [INITIAL_GAME_CONFIG]
+    }
+
+    this.saveToLocalStorage(profiles, "default")
+
   }
 
   changeProfile (profileName:string) {
-    this.selectedProfile = this.getProfile(profileName)
+    this.selectedProfile = profileName
   }
 
-  updateProfile(profileName:string, newSettings:Config) {
-    const config = this.getProfile(profileName)
+  static updateProfile(profileName:string, newSettings:Config, particles:Array<ParticleProps> = []) {
+    
+    let data = Settings.loadSavedConfig().profiles;
+    const config = data.find((p) => p.profileName == profileName);
+
     if (!config) {
+      data.push(newSettings) 
+      this.saveToLocalStorage(data, profileName)
       return
     }
-    Object.assign(config, newSettings);
-    this.saveToLocalStorage()
+    const parts:Array<ParticleProps> = []
+    if (particles && particles.length > 0) {
+      particles.forEach((particle:ParticleProps) => {
+        parts.push({
+          name: particle.name,
+          type: particle.type,
+          mass: particle.mass,
+          friction: particle.friction,
+          attractionForce: particle.attractionForce,
+          collitionForce: particle.collitionForce,
+          gravityForce: particle.gravityForce,
+          radius: particle.radius,
+          width: particle.width,
+          height: particle.height,
+          containerHeight: particle.containerHeight,
+          containerWidth: particle.containerWidth,
+          baseColor: particle.baseColor,
+          color: particle.color,
+          isCircle: particle.isCircle,
+          x: particle.x,
+          y: particle.y,
+          position: {
+            x: particle.x || 0,
+            y: particle.y || 0
+          }
+        })
+      })
+    }
+    newSettings.particles = parts
+    data = data.map((p) => {
+      if (p.profileName === profileName) {
+        return newSettings
+      }
+      return p
+    })
+    console.log(profileName, {data, newSettings})
+    this.saveToLocalStorage(data, profileName)
   }
 
-  saveToLocalStorage() {
+  static saveToLocalStorage(profiles:Array<Config>, selectedProfile:string) {
     localStorage.setItem('partsim-config', JSON.stringify({
-      profiles: this.profiles, selectedProfile: this.selectedProfile
+      profiles: profiles, selectedProfile: selectedProfile
     }))
   }
 
-  loadSavedConfig() {
+  static loadSavedConfig() {
+
+    let profiles: Array<Config> = [];
+    let selectedProfile:string = 'Default';
+
     try {
       const lsitem = localStorage.getItem('partsim-config')
-      if (!lsitem) return
-      const storeData = JSON.parse(lsitem)
-      if (!storeData?.profiles) return
-      
-      this.profiles = storeData?.profiles
-
-      if (storeData.selectedProfile) {
-        this.changeProfile(storeData.selectedProfile)
-      }
-      
+      const storeData = lsitem ? JSON.parse(lsitem) : {}
+      profiles = storeData.profiles
+      selectedProfile = storeData.selectedProfile
     } catch (error) {
       console.error('Error loading data:', error)
-      return
+    }
+
+    return {
+      profiles, selectedProfile
     }
   }
 
-  reloadConfig() {
+  static reloadConfig() {
     localStorage.removeItem('partsim-config')
   }
 
-  saveParticle(particle:ParticleProps) {
+  static saveParticle(particle:ParticleProps) {
     const particles = this.loadParticles()
     const particleData = {
       name: particle.name,
@@ -89,7 +143,9 @@ export default class Settings {
       containerWidth: particle.containerWidth,
       baseColor: particle.baseColor,
       color: particle.color,
-      isCircle: particle.isCircle
+      isCircle: particle.isCircle,
+      x: particle.x,
+      y: particle.y
     }
 
     const exists = particles.find((p:ParticleProps) => p.name === particle.name)
@@ -100,10 +156,10 @@ export default class Settings {
     }
 
     localStorage.setItem('partsim-particles', JSON.stringify(particles))
-    this.loadParticles()
+    return this.loadParticles()
   }
 
-  loadParticles() : Array<ParticleProps|any> {
+  static loadParticles() : Array<ParticleProps|any> {
     let particles = [];
 
     try {
@@ -118,12 +174,10 @@ export default class Settings {
       console.log('error', error)
       return []
     }
-    this.particleTypes = particles
     return particles
-
   }
 
-  deleteParticle(particle:ParticleProps) {
+  static deleteParticle(particle:ParticleProps) {
     const particles = this.loadParticles().filter((p:ParticleProps) => p.name !== particle.name)
     localStorage.setItem('partsim-particles', JSON.stringify(particles))
     this.loadParticles()

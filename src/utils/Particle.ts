@@ -5,7 +5,6 @@ export default class Particle {
   id?:number|string
   name?: string
   game: Game
-  canvas: any
   ctx: any
   
   x = 0
@@ -31,10 +30,9 @@ export default class Particle {
   color = "#ffffff"
   collitionColor = "#f62626"
 
-  constructor(game:Game, props:ParticleProps|null = null) {
+  constructor(game:Game, ctx:any, props:ParticleProps|null = null) {
     this.game = game
-    this.canvas = game.canvas
-    this.ctx = this.canvas.getContext('2d')
+    this.ctx = ctx
     if (props) {
       this.setConfig(props)
     }
@@ -49,9 +47,11 @@ export default class Particle {
       this.x = props.position.x
       this.y = props.position.y
     } else {
+      this.x = 100
       if (props.x) {
         this.x = props.x
       }
+      this.y = 100
       if (props.y) {
         this.y = props.y
       }

@@ -1,9 +1,9 @@
 
 <script lang="ts">
 import type { ParticleProps } from '@/types';
-
+import Settings from '@/utils/Settings';
   export default {
-    props: ['selectedTool', 'settings'],
+    props: ['selectedTool'],
     data() {
       return {
         objectTypes: [
@@ -22,7 +22,7 @@ import type { ParticleProps } from '@/types';
     },
     computed: {
       savedParticles() {
-        return this.settings?.loadParticles() 
+        return Settings.loadParticles() 
       }
     },
     mounted(){
@@ -32,7 +32,7 @@ import type { ParticleProps } from '@/types';
         this.$emit('select', item)
       },
       deleteParticle(particle: ParticleProps) {
-        this.settings?.deleteParticle(particle) 
+        Settings.deleteParticle(particle) 
       }
     }
   }

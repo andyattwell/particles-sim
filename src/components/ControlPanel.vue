@@ -2,9 +2,8 @@
 import ObjectsMenu from './ObjectsMenu.vue'
 import ParticleForm from './ParticleForm.vue'
 import DragComponent from './DragComponent.vue'
-import Settings from '@/utils/Settings'
 import type { Config, ParticleProps } from '../types'
-
+import Settings, { INITIAL_GAME_CONFIG } from '@/utils/Settings';
 
 export default {
   props: ['selectedTool', 'selectedObject', 'settings'],
@@ -13,26 +12,25 @@ export default {
   },
   data() {
     let particle: ParticleProps|undefined
-    let config: Config|undefined
-    const profiles: Array<Config> = []
-    const settingsController = new Settings()
-
+    const config: Config = INITIAL_GAME_CONFIG;
     return {
       selectedProfile: 'Default',
-      profiles: profiles,
-      config: config,
-      panelWidth: 600,
       isDragging: false,
       startX: 0,
       currentTab: 'profile',
       particle: particle,
-      settingsController
+      config: config
     }
   },
   mounted() {
     const self = this
-    self.setPanelSize();
-    this.config = {...this.settings}
+    // this.updateConfig()
+    
+    setTimeout(() => {
+      self.setPanelSize();
+    }, 1)
+
+    
   },
   watch: {
     selectedObject: {
@@ -48,21 +46,34 @@ export default {
       }
     },
   },
+  computed: {
+    profiles() {
+      return Settings.getProfiles();
+    }
+  },
   methods: {
     updateConfig() {
       const containerWidth = Number(this.config?.containerWidth);
       const containerHeight = Number(this.config?.containerHeight);
-      this.$emit('update', {
+      const canvasMaxWidth = Number(containerWidth);
+      const canvasMaxHeight = Number(containerHeight);
+      const panelWidth = Number(this.config?.panelWidth);
+      // console.log({...this.config})
+      const settings = {
         ...this.config,
         containerWidth,
-        containerHeight
-      })
+        containerHeight,
+        canvasMaxWidth,
+        canvasMaxHeight,
+        panelWidth,
+      }
+      this.$emit('update', settings)
     },
     updateParticle(particle:ParticleProps) {
       this.$emit('update-particle', particle)
     },
     saveParticle(particle:ParticleProps) {
-      this.settingsController.saveParticle(particle)
+      this.$emit('save-particle', particle)
     },
     changeTab(tab:string) {
       this.currentTab = tab
@@ -71,22 +82,15 @@ export default {
       this.$emit('changeTool', particle)
     },
     setPanelSize() {
-      // this.panelWidth = window.innerWidth - this.containerSize;
-      let lsWidth:any = localStorage.getItem('partsim-panelWidth');
-      if (!lsWidth || lsWidth === '') {
-        lsWidth = document.getElementById('particle-controls')?.clientWidth;
-      }
-      this.panelWidth = parseInt(lsWidth)
-      this.$emit('resize', this.panelWidth)
+      this.updateConfig()
+      // this.$emit('resize', this.panelWidth)
     },
     changeProfile() {
       if (this.selectedProfile === 'New') {
         return this.addProfile()
       }
-      const profile = this.profiles.find((p: Config) => p.profileName == this.selectedProfile);
-      if (profile) {
-        this.config = profile;
-      }
+      const conf = Settings.getProfile(this.selectedProfile)
+      this.$emit('update', conf)
     },
     addProfile() {
       const regex = /^New profile\s*\d*$/i;
@@ -98,22 +102,24 @@ export default {
         ...this.config,
         profileName: 'New profile' + sameCount
       }
-      this.profiles.push(newConfig)
-      this.config = newConfig
+      // this.profiles.push(newConfig)
+      // this.config = newConfig
       this.selectedProfile = newConfig.profileName || ''
       this.$emit('update', newConfig)
 
     },
     deleteConfig() {
-      this.profiles = this.profiles.filter((p) => p.profileName !== this.selectedProfile)
-      this.config = this.profiles[0];
-      this.selectedProfile = this.config.profileName || ''
+      // this.profiles = this.profiles.filter((p) => p.profileName !== this.selectedProfile)
+      // this.config = this.profiles[0];
+      // this.selectedProfile = this.config.profileName || ''
+      this.$emit('deleteProfile', this.selectedProfile)
     },
     onDrag(position: any) {
-      const next = this.panelWidth + position.x;
+      const next = this.config.panelWidth + position.x;
       if (next >= 300 && next <= 800) {
-        this.panelWidth = next
-        this.$emit('resize', next)
+        this.config.panelWidth = next
+        // this.$emit('resize', next)
+        this.updateConfig()
       }
     },
   }
@@ -121,7 +127,7 @@ export default {
 </script>
 
 <template>
-  <div class="p-3" id="particle-controls" :style="{'width': panelWidth + 'px'}">
+  <div class="p-3" id="particle-controls" :style="{'width': config.panelWidth + 'px'}">
     <!-- <div class="particle-controls-slider" @mousedown="startDrag"></div> -->
     <DragComponent @drag="onDrag"></DragComponent>
     <div class="card p-2 pt-0">
@@ -237,7 +243,7 @@ export default {
       </div>
 
       <div class="card-body" v-if="currentTab === 'objects'">
-        <ObjectsMenu @select="selectTool" :selectedTool="selectedTool" :settings="settingsController"/>
+        <ObjectsMenu @select="selectTool" :selectedTool="selectedTool" :config="config"/>
       </div>
 
     </div>

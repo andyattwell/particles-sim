@@ -2,14 +2,17 @@
   import Game from '../utils/Game'
   import ControlPanel from './ControlPanel.vue'
   import type { Config, ParticleProps } from '../types'
-
-import type Particle from '@/utils/Particle'
+  import Settings, { INITIAL_GAME_CONFIG } from '@/utils/Settings'
+  import type Particle from '@/utils/Particle'
 
   export default {
     components: {
       ControlPanel
     },
     data() {
+      const profiles: Array<Config> = []
+      const settingsController = new Settings()
+      let settings: Config = INITIAL_GAME_CONFIG;
       let selectedObject: Particle|undefined;
       let selectedTool: ParticleProps|undefined;
       return {
@@ -27,38 +30,48 @@ import type Particle from '@/utils/Particle'
           isMouseDown: false
         },
         isPlaying: false,
+        profiles: profiles,
+        settings: settings,
+        selectedProfile: 'Default',
+        settingsController
       }
     },
     mounted() {
       this.startGame()
       this.addListeners()
+      
     },
     methods: {
       startGame() {
-        this.game.start()
+        const settings = Settings.getProfile(this.selectedProfile)
+        if (settings) {
+          this.settings = settings
+        }
+        setTimeout(() => {
+          this.game.start(settings)
+        }, 200)
       },
       pauseGame() {
         this.isPlaying = this.game.pause()
       },
       updateConfig(config:Config) {
         this.game.applyConfig(config)
-        this.game.setCanvasSize()
+        this.resizeContainer(config.panelWidth);
+        Settings.updateProfile(config.profileName, config, this.game.particles)
       },
       updateParticle(particle:ParticleProps) {
         this.game.setParticleProps(particle)
       },
-      resizeContainer() {
-        const lsWidth = document.getElementById('particle-controls')?.clientWidth
-        this.containerSize = window.innerWidth - (lsWidth || 0)
-        if (this.game) {
-          this.game.setCanvasSize(this.containerSize)
-        };
+      resizeContainer(panelWidth:number|undefined) {
+        this.containerSize = window.innerWidth - (panelWidth || 0)
+        this.game.setCanvasSize(this.containerSize)
       },
       addListeners() {
         const self = this
 
         window.addEventListener('resize', () => {
-          self.resizeContainer();
+          // self.resizeContainer();
+          self.game.setCanvasSize(this.containerSize)
         })
 
         document.addEventListener('mousedown', (event) => {
@@ -179,6 +192,18 @@ import type Particle from '@/utils/Particle'
       changeTool(tool:ParticleProps|undefined) {
         this.selectedTool = tool
         this.selectedObject = tool
+      },
+      saveParticle(particle:ParticleProps) {
+        this.$emit('save-particle', particle)
+        Settings.saveParticle(particle)
+      },
+      changeProfile(profileName:string) {
+        // this.settingsController.changeProfile(profileName)
+        const profile = Settings.getProfile(profileName)
+        if (profile) {
+          this.settings = profile
+          this.game.config = this.settings
+        }
       }
     }
   }
@@ -192,10 +217,12 @@ import type Particle from '@/utils/Particle'
       @resize="resizeContainer"
       @update="updateConfig"
       @updateParticle="updateParticle"
+      @saveParticle="saveParticle"
+      @changeProfile="changeProfile"
       :selectedTool="selectedTool"
       :selectedObject="selectedObject"
       @changeTool="changeTool"
-      :settings="game.config"  
+      :settings="settings"
     />
   </div>
 </template>

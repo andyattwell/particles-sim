@@ -17,13 +17,20 @@ export default class Game {
     if (config) {
       this.config = config
     }
-    this.setCanvas()
+    this.setCanvasSize()
   }
 
-  start() {
-    this.particles = []
-    this.createParticles(1, 'circle')
-    this.createParticles(1, 'box')
+  start(config:Config|null = null) {
+    if (config) {
+      this.config = config
+      
+      if (config.particles) {
+        this.loadParticles(config.particles);
+      }
+    }
+    // this.particles = []
+    // this.createParticles(1, 'circle')
+    // this.createParticles(1, 'box')
     this.play()
   }
 
@@ -119,10 +126,11 @@ export default class Game {
   }
 
   addObject (props:ParticleProps) {
-    const obj = new Particle(this, props);
+    const obj = new Particle(this, this.ctx, props);
     if (obj) {
       this.particles.push(obj)
     }
+
   }
 
   createParticles(particleAmmount:number, type:string) {
@@ -139,10 +147,12 @@ export default class Game {
   }
 
   loadParticles(particlesArr:Array<ParticleProps>) {
+    
     if (!particlesArr) return false;
     const containerWidth = this.config.containerWidth || 1;
     const containerHeight = this.config.containerWidth || 1;
     this.particles = []
+    console.log('load', particlesArr)
     particlesArr.forEach(p => {
       this.addObject({
         ...this.config,
@@ -154,10 +164,9 @@ export default class Game {
   }
 
   updateParticles() {
-    
-    if (this.config.particles) {
-      this.loadParticles(this.config.particles);
-    }
+    // if (this.config.particles) {
+    //   this.loadParticles(this.config.particles);
+    // }
 
     const containerWidth = this.config.containerWidth || 1;
     const containerHeight = this.config.containerWidth || 1;
@@ -312,6 +321,13 @@ export default class Game {
     this.config.canvasMaxWidth = Number(config.canvasMaxWidth);
     this.config.canvasMaxHeight = Number(config.canvasMaxHeight);
     this.selectedProfile = config.profileName
+
+    if (config.particles && config.particles.length > 0) {
+      this.particles = []
+      config.particles.forEach((p:ParticleProps) => {
+        this.addObject(p)
+      });
+    }
 
     this.particles.forEach((p) => {
       p.containerWidth = Number(this.config.containerWidth)
